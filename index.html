@@ -1,1 +1,367 @@
-hello world 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NETLINK AGENCIES</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body{font-family: 'Inter', system-ui, sans-serif;}
+  .hidden{display:none;}
+  .badge{box-shadow:0 0 0 2px white;}
+</style>
+</head>
+<body class="bg-gray-100">
+
+<div id="app"></div>
+
+<script>
+const app = document.getElementById('app');
+const LOGO = '🔗';
+const WHATSAPP = '254706494401';
+const PAYPAL = 'marympurunga@gmail.com';
+const MPESA_NAME = 'MARY MPURUNGA';
+const MPESA_NO = '+254706494401';
+const ACTIVATION_FEE = 150;
+
+let state = JSON.parse(localStorage.getItem('netlink_state') || '{}');
+if(!state.users) state = {users:[], admin:{username:'admin', password:'Netlink2026'}, deposits:[], withdrawals:[], activations:[], posts:[], settings:{mpesaNo:MPESA_NO, mpesaName:MPESA_NAME, paypal:PAYPAL, fee:ACTIVATION_FEE}};
+let currentUser = JSON.parse(localStorage.getItem('netlink_user') || 'null');
+
+function save(){
+  localStorage.setItem('netlink_state', JSON.stringify(state));
+  localStorage.setItem('netlink_user', JSON.stringify(currentUser));
+}
+
+function render(){
+  if(!currentUser) return renderAuth();
+  if(currentUser.role==='admin') return renderAdmin();
+  if(currentUser.activated) return renderDashboard();
+  return renderActivation();
+}
+
+// AUTH SCREENS
+function renderAuth(){
+  app.innerHTML = `
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+      <div class="flex justify-center mb-4">
+        <div class="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white text-3xl">${LOGO}</div>
+      </div>
+      <h2 class="text-center text-xl font-bold text-gray-800 mb-1">NETLINK AGENCIES</h2>
+      <div id="auth-form"></div>
+      <div class="mt-4 text-center text-sm">
+        <span id="toggle-auth" class="text-blue-600 cursor-pointer">Already have an account? Login</span>
+      </div>
+    </div>
+  </div>`;
+  renderRegister();
+  
+  document.getElementById('toggle-auth').onclick = ()=>{
+    document.getElementById('auth-form').innerHTML.includes('Register') ? renderLogin() : renderRegister();
+  };
+}
+
+function renderRegister(){
+  document.getElementById('auth-form').innerHTML = `
+  <form id="reg-form" class="space-y-3">
+    <h3 class="font-semibold text-gray-700">Registration form</h3>
+    <input required name="username" placeholder="Enter user name" class="w-full border rounded-lg p-3">
+    <input required type="email" name="email" placeholder="Enter valid Email" class="w-full border rounded-lg p-3">
+    <input required name="phone" placeholder="Enter phone number" class="w-full border rounded-lg p-3">
+    <input required name="whatsapp" placeholder="Enter Whatsapp number" class="w-full border rounded-lg p-3">
+    <input required name="country" placeholder="Select country" class="w-full border rounded-lg p-3">
+    <input required type="password" name="password" placeholder="Enter password" class="w-full border rounded-lg p-3">
+    <input required type="password" name="cpassword" placeholder="Confirm password" class="w-full border rounded-lg p-3">
+    <button class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">Create account</button>
+  </form>`;
+  
+  document.getElementById('reg-form').onsubmit = e=>{
+    e.preventDefault();
+    let f = Object.fromEntries(new FormData(e.target));
+    if(f.password!==f.cpassword) return alert('Passwords do not match');
+    if(state.users.find(u=>u.username===f.username)) return alert('Username exists');
+    f.id = Date.now(); f.balance=0; f.earnings=0; f.withdrawn=0; f.pending=0; f.activated=false; f.role='user'; f.referrals={l1:[],l2:[],l3:[]};
+    state.users.push(f);
+    save();
+    alert('Account created! Loading...');
+    setTimeout(()=>{currentUser=f; render();},3000);
+  };
+}
+
+function renderLogin(){
+  document.getElementById('auth-form').innerHTML = `
+  <form id="login-form" class="space-y-3">
+    <h3 class="font-semibold text-gray-700">Login</h3>
+    <input required name="username" placeholder="Enter user name" class="w-full border rounded-lg p-3">
+    <input required type="password" name="password" placeholder="Enter password" class="w-full border rounded-lg p-3">
+    <button class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">Login</button>
+    <div class="text-center text-sm text-blue-600 cursor-pointer" onclick="renderForgot()">Forgot password?</div>
+  </form>`;
+  
+  document.getElementById('login-form').onsubmit = e=>{
+    e.preventDefault();
+    let f = Object.fromEntries(new FormData(e.target));
+    let u = state.users.find(x=>x.username===f.username && x.password===f.password);
+    if(!u) return alert('Invalid credentials');
+    currentUser=u; render();
+  };
+}
+
+function renderForgot(){
+  document.getElementById('auth-form').innerHTML = `
+  <form id="forgot-form" class="space-y-3">
+    <h3 class="font-semibold text-gray-700">Forgot password</h3>
+    <input required type="email" name="email" placeholder="Enter email address" class="w-full border rounded-lg p-3">
+    <button class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">Submit</button>
+    <div class="text-center text-sm text-blue-600 cursor-pointer" onclick="renderLogin()">Back to login</div>
+  </form>`;
+  document.getElementById('forgot-form').onsubmit = e=>{
+    e.preventDefault();
+    alert('Check your email for reset link. Demo only.');
+  };
+}
+
+// ACTIVATION PAGE
+function renderActivation(){
+  app.innerHTML = `
+  <div class="min-h-screen bg-gray-50 p-4">
+    <div class="max-w-md mx-auto bg-white rounded-2xl shadow p-6">
+      <div class="flex justify-center mb-3">
+        <div class="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white text-3xl">${LOGO}</div>
+      </div>
+      <h2 class="text-center font-bold text-lg mb-4">Account Activation</h2>
+      <p class="text-center text-gray-600 mb-4">Pay ${ACTIVATION_FEE} KES to activate your account</p>
+      
+      <div class="space-y-4">
+        <div class="border rounded-lg p-4">
+          <h4 class="font-semibold">M-PESA</h4>
+          <p class="text-sm">Go to M-PESA > Lipa na M-PESA > Paybill<br>Business No: ${MPESA_NO}<br>Account: ${currentUser.username}<br>Name: ${MPESA_NAME}</p>
+        </div>
+        <div class="border rounded-lg p-4">
+          <h4 class="font-semibold">PAYPAL</h4>
+          <p class="text-sm">Send to: ${PAYPAL}</p>
+        </div>
+        
+        <form id="act-form" class="space-y-3">
+          <input required name="txid" placeholder="Enter Transaction ID" class="w-full border rounded-lg p-3">
+          <button class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold">Submit</button>
+        </form>
+        
+        <div id="act-msg" class="hidden bg-green-50 border-green-200 p-3 rounded-lg text-green-700 text-sm"></div>
+      </div>
+    </div>
+  </div>`;
+  
+  document.getElementById('act-form').onsubmit = e=>{
+    e.preventDefault();
+    let tx = e.target.txid.value;
+    state.activations.push({user:currentUser.id, tx, time:Date.now(), status:'pending'});
+    save();
+    document.getElementById('act-msg').classList.remove('hidden');
+    document.getElementById('act-msg').innerHTML = `Dear ${currentUser.username} we have received your request, wait 2-5 minutes to get account activated. 
+    <br><a href="https://wa.me/${WHATSAPP}" class="text-blue-600 underline">Click here to message admin on WhatsApp</a>`;
+  };
+}
+
+// DASHBOARD
+function renderDashboard(){
+  let hour = new Date().getHours();
+  let greet = hour<12?'Good morning 🌞':hour<17?'Good afternoon':'Good evening';
+  let refLink = location.origin + location.pathname + '?ref=' + currentUser.username;
+  
+  app.innerHTML = `
+  <div class="flex min-h-screen">
+    <aside id="sidebar" class="w-64 bg-blue-900 text-white hidden md:block">
+      <div class="p-4 font-bold text-lg">${LOGO} NETLINK</div>
+      <nav id="menu" class="text-sm"></nav>
+    </aside>
+    <main class="flex-1 p-4">
+      <div class="bg-white rounded-xl p-4 shadow mb-4">
+        <h2 class="text-lg font-semibold">${greet} ${currentUser.username} <span class="badge bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">✓</span></h2>
+      </div>
+      
+      <div class="grid md:grid-cols-2 gap-4 mb-4">
+        <div class="bg-red-50 p-4 rounded-xl">
+          <p class="text-sm text-gray-600">Expenses - Activation Fee</p>
+          <p class="text-xl font-bold">${ACTIVATION_FEE} KES</p>
+        </div>
+        <div class="bg-green-50 p-4 rounded-xl">
+          <p class="text-sm text-gray-600">Total Earnings</p>
+          <p class="text-xl font-bold">${currentUser.earnings} KES</p>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-xl p-4 shadow space-y-2">
+        <div class="flex justify-between"><span>ACCOUNT BALANCE</span><span>${currentUser.balance} KES</span></div>
+        <div class="flex justify-between"><span>WITHDRAWN AMOUNT</span><span>${currentUser.withdrawn} KES</span></div>
+        <div class="flex justify-between"><span>PENDING AMOUNT</span><span>${currentUser.pending} KES</span></div>
+        <div class="flex justify-between"><span>WEEKLY BONUS</span><span>0 KES</span></div>
+        <div class="flex justify-between"><span>KARIBU BONUS</span><span>0 KES</span></div>
+      </div>
+      
+      <div class="bg-white rounded-xl p-4 shadow mt-4">
+        <p class="font-semibold mb-2">Referral Link</p>
+        <div class="flex gap-2">
+          <input id="ref" value="${refLink}" readonly class="flex-1 border rounded-lg p-2">
+          <button onclick="navigator.clipboard.writeText('${refLink}');alert('Copied')" class="bg-blue-600 text-white px-3 rounded-lg">Copy</button>
+        </div>
+        <div class="flex gap-2 mt-2">
+          <a href="https://wa.me/?text=${refLink}" class="text-green-600">WhatsApp</a>
+          <a href="https://facebook.com/sharer/sharer.php?u=${refLink}" class="text-blue-600">Facebook</a>
+          <a href="https://t.me/share/url?url=${refLink}" class="text-blue-500">Telegram</a>
+        </div>
+      </div>
+      
+      <div id="content" class="mt-4"></div>
+    </main>
+  </div>`;
+  
+  const menuItems = ['Home','E- tournaments','Karibu bonus','Pay for Clients','Deposit','Mentor ship','Company advertisement','Betting prediction','Cashout','Article','View ads','Ticktock videos','Instagram videos','YouTube videos','Withdraw Tasks','Downlines','Whatsapp adverts','Forex trading','Trivia Quiz','Daily servey','Math quiz','Number game','Community','Get help','Time table','Profile'];
+  document.getElementById('menu').innerHTML = menuItems.map((m,i)=>`<a href="#" onclick="loadMenu(${i})" class="block px-4 py-2 hover:bg-blue-800">${m}</a>`).join('');
+  loadMenu(0);
+}
+
+function loadMenu(i){
+  const items = ['dashboard','tournaments','karibu','payclients','deposit','mentorship','ads','betting','cashout','article','viewads','tiktok','insta','youtube','withdrawtasks','downlines','whatsappads','forex','trivia','survey','math','numbergame','community','help','timetable','profile'];
+  document.getElementById('content').innerHTML = `<div class="bg-white p-4 rounded-xl shadow">This is ${items[i]} page. Content coming soon.</div>`;
+  if(items[i]==='cashout') renderCashout();
+  if(items[i]==='deposit') renderDeposit();
+}
+
+// CASHOUT
+function renderCashout(){
+  document.getElementById('content').innerHTML = `
+  <div class="bg-white p-4 rounded-xl shadow">
+    <h3 class="font-semibold mb-3">Cashout</h3>
+    <form id="cashout-form" class="space-y-3">
+      <input required type="number" name="amount" placeholder="Enter amount" class="w-full border rounded-lg p-3">
+      <button class="w-full bg-blue-600 text-white py-3 rounded-lg">Submit Request</button>
+    </form>
+    <div class="mt-4 bg-blue-50 p-3 rounded-lg text-sm">
+      Note! Minimum withdrawal is KES 150. Transaction Fee: 150-350:15, 350-700:30, 700-1500:50, 1500-3000:70, 3000-10000:150.
+      <br><a href="https://wa.me/${WHATSAPP}" class="text-blue-600">Verify me</a>
+    </div>
+    <div id="cashout-msg" class="hidden mt-3 bg-green-50 p-3 rounded-lg text-green-700"></div>
+  </div>`;
+  
+  document.getElementById('cashout-form').onsubmit = e=>{
+    e.preventDefault();
+    let amt = parseInt(e.target.amount.value);
+    state.withdrawals.push({user:currentUser.id, amount:amt, status:'pending'});
+    currentUser.pending+=amt;
+    save();
+    document.getElementById('cashout-msg').classList.remove('hidden');
+    document.getElementById('cashout-msg').innerText = `Your withdraw request of KES ${amt} has been submitted successfully. Wait verification and timely disbursement into your account.`;
+  };
+}
+
+function renderDeposit(){
+  document.getElementById('content').innerHTML = `
+  <div class="bg-white p-4 rounded-xl shadow">
+    <h3 class="font-semibold mb-3">Deposit</h3>
+    <form id="dep-form" class="space-y-3">
+      <input required type="number" name="amount" placeholder="Enter amount" class="w-full border rounded-lg p-3">
+      <input required name="txid" placeholder="Enter transaction ID" class="w-full border rounded-lg p-3">
+      <button class="w-full bg-green-600 text-white py-3 rounded-lg">Submit</button>
+    </form>
+  </div>`;
+  
+  document.getElementById('dep-form').onsubmit = e=>{
+    e.preventDefault();
+    let f = Object.fromEntries(new FormData(e.target));
+    state.deposits.push({user:currentUser.id, ...f, status:'pending'});
+    save();
+    alert('Deposit submitted for approval');
+  };
+}
+
+// ADMIN PANEL
+function renderAdmin(){
+  app.innerHTML = `
+  <div class="flex min-h-screen">
+    <aside class="w-64 bg-gray-900 text-white">
+      <div class="p-4 font-bold">Admin Panel</div>
+      <nav id="admin-menu" class="text-sm"></nav>
+    </aside>
+    <main class="flex-1 p-4">
+      <div id="admin-content"></div>
+    </main>
+  </div>`;
+  
+  const menu = ['Home','Manage User','Activation','Withdraw','Pending Deposits','Add Admin','My Agent','Add Telegram','Add WhatsApp','Post','Settings','Logout'];
+  document.getElementById('admin-menu').innerHTML = menu.map((m,i)=>`<a href="#" onclick="loadAdmin(${i})" class="block px-4 py-2 hover:bg-gray-800">${m}</a>`).join('');
+  loadAdmin(0);
+}
+
+function loadAdmin(i){
+  if(i===0) return document.getElementById('admin-content').innerHTML = `
+    <div class="grid md:grid-cols-3 gap-4">
+      <div class="bg-green-100 p-4 rounded-xl">Total Users: ${state.users.length}</div>
+      <div class="bg-purple-100 p-4 rounded-xl">Active: ${state.users.filter(u=>u.activated).length}</div>
+      <div class="bg-red-100 p-4 rounded-xl">Inactive: ${state.users.filter(u=>!u.activated).length}</div>
+      <div class="bg-green-100 p-4 rounded-xl">Pending Withdraw: ${state.withdrawals.filter(w=>w.status==='pending').length}</div>
+      <div class="bg-yellow-100 p-4 rounded-xl">Pending Activation: ${state.activations.filter(a=>a.status==='pending').length}</div>
+      <div class="bg-yellow-100 p-4 rounded-xl">Pending Deposits: ${state.deposits.filter(d=>d.status==='pending').length}</div>
+    </div>`;
+  
+  if(i===2) return renderAdminActivation();
+  if(i===3) return renderAdminWithdraw();
+  if(i===11){currentUser=null; save(); render();}
+}
+
+function renderAdminActivation(){
+  let pending = state.activations.filter(a=>a.status==='pending');
+  document.getElementById('admin-content').innerHTML = `
+  <h3 class="font-bold mb-3">Pending Activations</h3>
+  ${pending.map(p=>{
+    let u = state.users.find(u=>u.id===p.user);
+    return `<div class="bg-white p-3 rounded-lg mb-2 flex justify-between">
+      <span>${u.username} - ${p.tx}</span>
+      <div>
+        <button onclick="approveActivation(${p.user})" class="bg-green-600 text-white px-3 py-1 rounded">Approve</button>
+        <button onclick="rejectActivation(${p.user})" class="bg-red-600 text-white px-3 py-1 rounded">Reject</button>
+      </div>
+    </div>`;
+  }).join('')}`;
+}
+
+function approveActivation(uid){
+  let u = state.users.find(u=>u.id===uid);
+  u.activated=true;
+  state.activations.find(a=>a.user===uid).status='approved';
+  save(); renderAdmin();
+}
+
+function rejectActivation(uid){
+  state.activations.find(a=>a.user===uid).status='rejected';
+  save(); renderAdmin();
+}
+
+function renderAdminWithdraw(){
+  let pending = state.withdrawals.filter(w=>w.status==='pending');
+  document.getElementById('admin-content').innerHTML = `
+  <h3 class="font-bold mb-3">Pending Withdrawals</h3>
+  ${pending.map(p=>{
+    let u = state.users.find(u=>u.id===p.user);
+    return `<div class="bg-white p-3 rounded-lg mb-2 flex justify-between">
+      <span>${u.username} - ${p.amount} KES</span>
+      <button onclick="approveWithdraw(${p.user})" class="bg-green-600 text-white px-3 py-1 rounded">Approve</button>
+    </div>`;
+  }).join('')}`;
+}
+
+function approveWithdraw(uid){
+  let w = state.withdrawals.find(w=>w.user===uid && w.status==='pending');
+  w.status='approved';
+  let u = state.users.find(u=>u.id===uid);
+  u.withdrawn+=w.amount;
+  u.pending-=w.amount;
+  save(); renderAdmin();
+}
+
+// INIT
+render();
+</script>
+</body>
+                                            </html>
