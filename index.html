@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CodeSpace — Live Playground</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0f14;
+      --surface:   #13161e;
+      --panel:     #191c26;
+      --border:    #252933;
+      --accent:    #00e5a0;
+      --accent2:   #6c63ff;
+      --warn:      #ff6b6b;
+      --text:      #e2e8f0;
+      --muted:     #5a6176;
+      --tab-h:     42px;
+      --bar-h:     52px;
+    }
+
+    html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; }
+
+    /* ── TOP BAR ── */
+    #topbar {
+      height: var(--bar-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 18px;
+      gap: 14px;
+      user-select: none;
+    }
+    #logo {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #logo svg { width: 22px; height: 22px; }
+
+    .top-spacer { flex: 1; }
+
+    /* Language selector */
+    #lang-select {
+      appearance: none;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      padding: 6px 30px 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='%235a6176'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      outline: none;
+      transition: border-color .2s;
+    }
+    #lang-select:focus { border-color: var(--accent); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border-radius: 7px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 0.8rem;
+      border: none;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-run {
+      background: var(--accent);
+      color: #000;
+    }
+    .btn-run:hover { opacity: .88; }
+    .btn-clear {
+      background: var(--panel);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-clear:hover { color: var(--text); border-color: var(--muted); }
+
+    /* ── MAIN LAYOUT ── */
+    #workspace {
+      display: flex;
+      height: calc(100vh - var(--bar-h));
+      overflow: hidden;
+    }
+
+    /* ── EDITOR PANE ── */
+    #editor-pane {
+      flex: 1 1 55%;
+      min-width: 280px;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+    }
+
+    /* Tab bar */
+    #tab-bar {
+      height: var(--tab-h);
+      background: var(--surface);
+      display: flex;
+      align-items: flex-end;
+      border-bottom: 1px solid var(--border);
+      padding: 0 10px;
+      gap: 2px;
+      overflow-x: auto;
+    }
+    #tab-bar::-webkit-scrollbar { height: 3px; }
+    #tab-bar::-webkit-scrollbar-thumb { background: var(--border); }
+
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 14px;
+      height: 34px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.76rem;
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: 6px 6px 0 0;
+      border: 1px solid transparent;
+      border-bottom: none;
+      white-space: nowrap;
+      transition: color .15s, background .15s;
+      user-select: none;
+    }
+    .tab.active {
+      background: var(--panel);
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .tab:not(.active):hover { color: var(--text); background: rgba(255,255,255,.03); }
+
+    .tab-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .dot-html { background: #e34c26; }
+    .dot-css  { background: #264de4; }
+    .dot-js   { background: #f7df1e; }
+    .dot-py   { background: #3572a5; }
+    .dot-ts   { background: #3178c6; }
+
+    .tab-close {
+      width: 14px; height: 14px;
+      border-radius: 3px;
+      display: grid; place-items: center;
+      font-size: 0.65rem;
+      color: var(--muted);
+      opacity: 0;
+      transition: opacity .15s, background .15s;
+    }
+    .tab:hover .tab-close { opacity: 1; }
+    .tab-close:hover { background: rgba(255,107,107,.25); color: var(--warn); }
+
+    #add-tab {
+      margin-left: 4px;
+      margin-bottom: 4px;
+      width: 26px; height: 26px;
+      border-radius: 5px;
+      background: none;
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      font-size: 1rem;
+      cursor: pointer;
+      display: grid; place-items: center;
+      transition: border-color .15s, color .15s;
+      flex-shrink: 0;
+    }
+    #add-tab:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Code area */
+    #editor-wrap {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      background: var(--panel);
+    }
+
+    #line-numbers {
+      width: 46px;
+      padding: 16px 0;
+      background: var(--surface);
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      line-height: 1.65;
+      color: var(--muted);
+      overflow: hidden;
+      user-select: none;
+      padding-right: 10px;
+      flex-shrink: 0;
+    }
+
+    #code-editor {
+      flex: 1;
+      padding: 16px 16px 16px 10px;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      line-height: 1.65;
+      color: var(--text);
+      caret-color: var(--accent);
+      tab-size: 2;
+      overflow-y: auto;
+      white-space: pre;
+      overflow-wrap: normal;
+    }
+    #code-editor::-webkit-scrollbar { width: 6px; height: 6px; }
+    #code-editor::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── STATUS BAR ── */
+    #status-bar {
+      height: 26px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      gap: 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+    #status-bar span { display: flex; align-items: center; gap: 5px; }
+    #cursor-pos { color: var(--text); }
+
+    /* ── OUTPUT PANE ── */
+    #output-pane {
+      flex: 1 1 45%;
+      min-width: 240px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #output-header {
+      height: var(--tab-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    #output-header .badge {
+      background: var(--accent);
+      color: #000;
+      border-radius: 4px;
+      font-size: 0.6rem;
+      padding: 2px 6px;
+      font-weight: 700;
+    }
+    .out-spacer { flex: 1; }
+
+    #output-tabs {
+      display: flex;
+      gap: 4px;
+    }
+    .out-tab {
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      color: var(--muted);
+      transition: background .15s, color .15s;
+    }
+    .out-tab.active { background: var(--panel); color: var(--text); }
+    .out-tab:hover:not(.active) { color: var(--text); }
+
+    /* Preview iframe */
+    #preview-frame {
+      flex: 1;
+      border: none;
+      background: #fff;
+      display: block;
+    }
+
+    /* Console output */
+    #console-out {
+      flex: 1;
+      background: var(--bg);
+      overflow-y: auto;
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      display: none;
+    }
+    #console-out::-webkit-scrollbar { width: 5px; }
+    #console-out::-webkit-scrollbar-thumb { background: var(--border); }
+
+    .log-line { display: flex; gap: 10px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.03); }
+    .log-line:last-child { border-bottom: none; }
+    .log-icon { flex-shrink: 0; width: 16px; text-align: center; }
+    .log-text { flex: 1; word-break: break-all; color: var(--text); }
+    .log-line.log-error .log-text { color: var(--warn); }
+    .log-line.log-warn .log-text { color: #ffd166; }
+    .log-line.log-info .log-text { color: #74c0fc; }
+    .log-line.log-success .log-text { color: var(--accent); }
+
+    /* Empty console */
+    #console-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 10px;
+      color: var(--muted);
+      font-family: 'Syne', sans-serif;
+    }
+    #console-empty svg { opacity: .3; }
+
+    /* ── RESIZE HANDLE ── */
+    #resize-handle {
+      width: 5px;
+      background: var(--border);
+      cursor: col-resize;
+      flex-shrink: 0;
+      transition: background .15s;
+    }
+    #resize-handle:hover, #resize-handle.dragging { background: var(--accent); }
+
+    /* ── KEYBOARD SHORTCUT HINT ── */
+    .kbd {
+      display: inline-block;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    /* ── RUN SPINNER ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 12px; height: 12px;
+      border: 2px solid rgba(0,0,0,.25);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin .5s linear infinite;
+    }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      padding: 8px 18px;
+      border-radius: 8px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s, transform .25s;
+      z-index: 999;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── MOBILE NOTICE ── */
+    #mobile-bar {
+      display: none;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 14px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      gap: 8px;
+      align-items: center;
+    }
+    @media (max-width: 640px) {
+      #mobile-bar { display: flex; }
+      #editor-pane { flex: none; width: 100%; }
+      #resize-handle { display: none; }
+      #output-pane { display: none; }
+      #workspace { flex-direction: column; }
+      #output-pane.mobile-show { display: flex; width: 100%; flex: 1; }
+      #editor-pane.mobile-hide { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div id="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+    </svg>
+    CodeSpace
+  </div>
+
+  <select id="lang-select">
+    <option value="html">HTML / CSS / JS</option>
+    <option value="js">JavaScript</option>
+    <option value="py">Python (Pyodide)</option>
+    <option value="ts">TypeScript</option>
+  </select>
+
+  <span class="kbd">Ctrl + Enter</span>
+
+  <div class="top-spacer"></div>
+
+  <button class="btn btn-clear" id="btn-clear">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+    Clear
+  </button>
+  <button class="btn btn-run" id="btn-run">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    Run
+  </button>
+</div>
+
+<!-- MOBILE TOGGLE -->
+<div id="mobile-bar">
+  <span>📱 Mobile mode —</span>
+  <button class="btn btn-clear" id="mob-toggle" style="padding:4px 10px;font-size:.72rem">Switch to Output</button>
+</div>
+
+<!-- WORKSPACE -->
+<div id="workspace">
+
+  <!-- EDITOR PANE -->
+  <div id="editor-pane">
+    <div id="tab-bar">
+      <!-- tabs injected by JS -->
+      <button id="add-tab" title="New file">+</button>
+    </div>
+    <div id="editor-wrap">
+      <div id="line-numbers">1</div>
+      <textarea id="code-editor" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
+    </div>
+    <div id="status-bar">
+      <span id="cursor-pos">Ln 1, Col 1</span>
+      <span id="char-count">0 chars</span>
+      <span id="lang-label">HTML</span>
+    </div>
+  </div>
+
+  <!-- RESIZE HANDLE -->
+  <div id="resize-handle"></div>
+
+  <!-- OUTPUT PANE -->
+  <div id="output-pane">
+    <div id="output-header">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9l3 3-3 3M13 15h3"/></svg>
+      Output
+      <span class="badge" id="output-badge">READY</span>
+      <div class="out-spacer"></div>
+      <div id="output-tabs">
+        <div class="out-tab active" data-tab="preview">Preview</div>
+        <div class="out-tab" data-tab="console">Console</div>
+      </div>
+    </div>
+    <iframe id="preview-frame" sandbox="allow-scripts allow-modals"></iframe>
+    <div id="console-out">
+      <div id="console-empty">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 6l4-4 4 4M8 18l4 4 4-4"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+        Console is empty — run some code
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+const DEFAULTS = {
+  html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Page</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 40px 50px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.4);
+    }
+    h1 { color: #00e5a0; margin-bottom: 8px; }
+    p  { color: #94a3b8; }
+    button {
+      margin-top: 20px;
+      background: #00e5a0;
+      border: none;
+      color: #000;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { opacity: .85; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>👋 Hello, CodeSpace!</h1>
+    <p>Edit this code and press <strong>Run</strong> (or Ctrl+Enter).</p>
+    <button onclick="alert('It works! 🎉')">Click me</button>
+  </div>
+</body>
+</html>`,
+
+  js: `// JavaScript Playground
+// console.log, console.error, console.warn all appear in the Console tab.
+
+const greet = name => \`Hello, \${name}!\`;
+console.log(greet('World'));
+
+// Fibonacci
+function fib(n) {
+  if (n <= 1) return n;
+  return fib(n - 1) + fib(n - 2);
+}
+
+for (let i = 0; i <= 10; i++) {
+  console.log(\`fib(\${i}) = \${fib(i)}\`);
+}
+
+// Async example
+async function fetchExample() {
+  try {
+    const res = await fetch('https://jsonplaceholder.typicode.com/todos/1');
+    const data = await res.json();
+    console.info('Fetched:', JSON.stringify(data));
+  } catch (e) {
+    console.error('Fetch failed:', e.message);
+  }
+}
+fetchExample();`,
+
+  py: `# Python Playground (powered by Pyodide — runs in your browser!)
+# First run loads Pyodide (~10 MB). Subsequent runs are instant.
+
+import math, json
+
+def fibonacci(n):
+    a, b = 0, 1
+    seq = []
+    for _ in range(n):
+        seq.append(a)
+        a, b = b, a + b
+    return seq
+
+print("Fibonacci:", fibonacci(12))
+print("Pi ≈", round(math.pi, 6))
+
+data = {"language": "Python", "engine": "Pyodide", "status": "✅ Running"}
+print(json.dumps(data, indent=2))`,
+
+  ts: `// TypeScript Playground
+// (Transpiled via Babel — types are stripped, not checked)
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+const users: User[] = [
+  { id: 1, name: 'Alice', email: 'alice@example.com' },
+  { id: 2, name: 'Bob',   email: 'bob@example.com' },
+];
+
+function formatUser(u: User): string {
+  return \`[\${u.id}] \${u.name} <\${u.email}>\`;
+}
+
+users.forEach(u => console.log(formatUser(u)));
+
+// Generic function
+function first<T>(arr: T[]): T | undefined {
+  return arr[0];
+}
+console.log('First user:', first(users)?.name);`
+};
+
+const DOT_CLASS = { html: 'dot-html', css: 'dot-css', js: 'dot-js', py: 'dot-py', ts: 'dot-ts' };
+
+let tabs = [
+  { id: 1, name: 'index.html', lang: 'html', code: DEFAULTS.html },
+  { id: 2, name: 'script.js',  lang: 'js',   code: DEFAULTS.js   },
+];
+let activeTab = 1;
+let tabCounter = 3;
+let pyodideReady = false;
+let pyodideLoading = false;
+let pyodide = null;
+let currentOutputTab = 'preview';
+
+// ─────────────────────────────────────────────
+//  DOM REFS
+// ─────────────────────────────────────────────
+const tabBar       = document.getElementById('tab-bar');
+const addTabBtn    = document.getElementById('add-tab');
+const langSelect   = document.getElementById('lang-select');
+const codeEditor   = document.getElementById('code-editor');
+const lineNumbers  = document.getElementById('line-numbers');
+const previewFrame = document.getElementById('preview-frame');
+const consoleOut   = document.getElementById('console-out');
+const consoleEmpty = document.getElementById('console-empty');
+const outputBadge  = document.getElementById('output-badge');
+const langLabel    = document.getElementById('lang-label');
+const cursorPos    = document.getElementById('cursor-pos');
+const charCount    = document.getElementById('char-count');
+const btnRun       = document.getElementById('btn-run');
+const btnClear     = document.getElementById('btn-clear');
+const toast        = document.getElementById('toast');
+const outTabs      = document.querySelectorAll('.out-tab');
+
+// ─────────────────────────────────────────────
+//  TABS
+// ─────────────────────────────────────────────
+function renderTabs() {
+  // Remove all tab elements (not the + button)
+  tabBar.querySelectorAll('.tab').forEach(t => t.remove());
+
+  tabs.forEach(tab => {
+    const el = document.createElement('div');
+    el.className = 'tab' + (tab.id === activeTab ? ' active' : '');
+    el.dataset.id = tab.id;
+    el.innerHTML = `
+      <span class="tab-dot ${DOT_CLASS[tab.lang] || 'dot-js'}"></span>
+      ${tab.name}
+      <span class="tab-close" data-close="${tab.id}">✕</span>
+    `;
+    el.addEventListener('click', e => {
+      if (e.target.dataset.close) return;
+      saveCurrentTab();
+      activeTab = tab.id;
+      loadTab(tab.id);
+      renderTabs();
+    });
+    el.querySelector('[data-close]').addEventListener('click', e => {
+      e.stopPropagation();
+      closeTab(tab.id);
+    });
+    tabBar.insertBefore(el, addTabBtn);
+  });
+}
+
+function saveCurrentTab() {
+  const t = tabs.find(t => t.id === activeTab);
+  if (t) t.code = codeEditor.value;
+}
+
+function loadTab(id) {
+  const t = tabs.find(t => t.id === id);
+  if (!t) return;
+  activeTab = t.id;
+  codeEditor.value = t.code;
+  langSelect.value = t.lang;
+  langLabel.textContent = t.lang.toUpperCase();
+  updateLineNumbers();
+  updateStats();
+}
+
+function closeTab(id) {
+  if (tabs.length === 1) { showToast('Cannot close the only tab'); return; }
+  tabs = tabs.filter(t => t.id !== id);
+  if (activeTab === id) {
+    activeTab = tabs[tabs.length - 1].id;
+    loadTab(activeTab);
+  }
+  renderTabs();
+}
+
+function newTab() {
+  saveCurrentTab();
+  const lang = langSelect.value;
+  const names = { html: 'page.html', js: 'script.js', py: 'main.py', ts: 'index.ts' };
+  const tab = { id: tabCounter++, name: names[lang] || 'file.js', lang, code: DEFAULTS[lang] || '' };
+  tabs.push(tab);
+  activeTab = tab.id;
+  renderTabs();
+  loadTab(tab.id);
+}
+
+addTabBtn.addEventListener('click', newTab);
+
+langSelect.addEventListener('change', () => {
+  const t = tabs.find(t => t.id === activeTab);
+  if (t) {
+    t.lang = langSelect.value;
+    const names = { html: 'index.html', js: 'script.js', py: 'main.py', ts: 'index.ts' };
+    t.name = names[t.lang];
+    langLabel.textContent = t.lang.toUpperCase();
+  }
+  renderTabs();
+});
+
+// ─────────────────────────────────────────────
+//  LINE NUMBERS
+// ─────────────────────────────────────────────
+function updateLineNumbers() {
+  const lines = codeEditor.value.split('\n').length;
+  lineNumbers.innerHTML = Array.from({ length: lines }, (_, i) => i + 1).join('<br>');
+}
+
+function syncScroll() {
+  lineNumbers.scrollTop = codeEditor.scrollTop;
+}
+
+codeEditor.addEventListener('scroll', syncScroll);
+codeEditor.addEventListener('input', () => { updateLineNumbers(); updateStats(); });
+
+// ─────────────────────────────────────────────
+//  STATUS BAR
+// ─────────────────────────────────────────────
+function updateStats() {
+  charCount.textContent = codeEditor.value.length + ' chars';
+}
+
+codeEditor.addEventListener('keyup', updateCursor);
+codeEditor.addEventListener('click', updateCursor);
+
+function updateCursor() {
+  const val = codeEditor.value.substring(0, codeEditor.selectionStart);
+  const lines = val.split('\n');
+  cursorPos.textContent = `Ln ${lines.length}, Col ${lines[lines.length - 1].length + 1}`;
+}
+
+// ─────────────────────────────────────────────
+//  TAB KEY
+// ─────────────────────────────────────────────
+codeEditor.addEventListener('keydown', e => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const s = codeEditor.selectionStart, end = codeEditor.selectionEnd;
+    codeEditor.value = codeEditor.value.substring(0, s) + '  ' + codeEditor.value.substring(end);
+    codeEditor.selectionStart = codeEditor.selectionEnd = s + 2;
+    updateLineNumbers();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    runCode();
+  }
+});
+
+// ─────────────────────────────────────────────
+//  OUTPUT TABS
+// ─────────────────────────────────────────────
+outTabs.forEach(t => {
+  t.addEventListener('click', () => {
+    outTabs.forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    currentOutputTab = t.dataset.tab;
+    if (currentOutputTab === 'preview') {
+      previewFrame.style.display = 'block';
+      consoleOut.style.display = 'none';
+    } else {
+      previewFrame.style.display = 'none';
+      consoleOut.style.display = 'block';
+    }
+  });
+});
+
+// ─────────────────────────────────────────────
+//  CONSOLE LOGGER
+// ─────────────────────────────────────────────
+const ICONS = { log: '›', error: '✕', warn: '⚠', info: 'ℹ', success: '✓' };
+
+function logToConsole(text, type = 'log') {
+  if (consoleEmpty) consoleEmpty.style.display = 'none';
+  const line = document.createElement('div');
+  line.className = `log-line log-${type}`;
+  line.innerHTML = `<span class="log-icon">${ICONS[type] || '›'}</span><span class="log-text">${escapeHtml(String(text))}</span>`;
+  consoleOut.appendChild(line);
+  consoleOut.scrollTop = consoleOut.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function clearConsole() {
+  consoleOut.innerHTML = '';
+  consoleOut.appendChild(consoleEmpty);
+  consoleEmpty.style.display = 'flex';
+}
+
+// ─────────────────────────────────────────────
+//  RUN CODE
+// ─────────────────────────────────────────────
+btnRun.addEventListener('click', runCode);
+btnClear.addEventListener('click', () => {
+  codeEditor.value = '';
+  updateLineNumbers();
+  updateStats();
+  clearConsole();
+  previewFrame.srcdoc = '';
+  showToast('Editor cleared');
+});
+
+function setRunning(on) {
+  if (on) {
+    btnRun.innerHTML = '<div class="spinner"></div> Running…';
+    btnRun.disabled = true;
+    outputBadge.textContent = 'RUNNING';
+    outputBadge.style.background = '#ffd166';
+  } else {
+    btnRun.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run';
+    btnRun.disabled = false;
+  }
+}
+
+function setBadge(status) {
+  const map = { ok: ['DONE', '#00e5a0'], error: ['ERROR', '#ff6b6b'], ready: ['READY', '#00e5a0'] };
+  const [label, color] = map[status] || map.ready;
+  outputBadge.textContent = label;
+  outputBadge.style.background = color;
+}
+
+async function runCode() {
+  saveCurrentTab();
+  const t = tabs.find(t => t.id === activeTab);
+  if (!t) return;
+
+  clearConsole();
+  setRunning(true);
+
+  // Switch to console for non-HTML
+  if (t.lang !== 'html') {
+    outTabs.forEach(x => x.classList.remove('active'));
+    document.querySelector('[data-tab="console"]').classList.add('active');
+    previewFrame.style.display = 'none';
+    consoleOut.style.display = 'block';
+    currentOutputTab = 'console';
+  } else {
+    outTabs.forEach(x => x.classList.remove('active'));
+    document.querySelector('[data-tab="preview"]').classList.add('active');
+    previewFrame.style.display = 'block';
+    consoleOut.style.display = 'none';
+    currentOutputTab = 'preview';
+  }
+
+  try {
+    if (t.lang === 'html') await runHTML(t.code);
+    else if (t.lang === 'js')  await runJS(t.code);
+    else if (t.lang === 'ts')  await runTS(t.code);
+    else if (t.lang === 'py')  await runPython(t.code);
+    setBadge('ok');
+  } catch (err) {
+    logToConsole(err.message || String(err), 'error');
+    setBadge('error');
+  }
+
+  setRunning(false);
+}
+
+// HTML
+function runHTML(code) {
+  return new Promise(resolve => {
+    previewFrame.srcdoc = code;
+    previewFrame.onload = resolve;
+    setTimeout(resolve, 3000);
+  });
+}
+
+// JavaScript — capture console methods via eval in iframe
+function runJS(code) {
+  return new Promise((resolve, reject) => {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.sandbox = 'allow-scripts';
+    document.body.appendChild(iframe);
+
+    const captured = [];
+
+    window._csLog = (args, type) => {
+      const text = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ');
+      logToConsole(text, type);
+    };
+
+    const blob = new Blob([`
+      const _send = (type, args) => window.parent._csLog(args, type);
+      const console = {
+        log:   (...a) => _send('log', a),
+        error: (...a) => _send('error', a),
+        warn:  (...a) => _send('warn', a),
+        info:  (...a) => _send('info', a),
+      };
+      window.onerror = (msg, src, line) => { _send('error', [msg + ' (line ' + line + ')']); };
+      try {
+        ${code}
+      } catch(e) { _send('error', [e.message]); }
+      window.parent.postMessage('__cs_done__', '*');
+    `], { type: 'text/javascript' });
+
+    const url = URL.createObjectURL(blob);
+    const script = iframe.contentDocument.createElement('script');
+    script.src = url;
+    iframe.contentDocument.body.appendChild(script);
+
+    const handler = e => {
+      if (e.data === '__cs_done__') {
+        window.removeEventListener('message', handler);
+        URL.revokeObjectURL(url);
+        document.body.removeChild(iframe);
+        resolve();
+      }
+    };
+    window.addEventListener('message', handler);
+    setTimeout(() => { window.removeEventListener('message', handler); resolve(); }, 8000);
+  });
+}
+
+// TypeScript — strip types via simple regex then run as JS
+async function runTS(code) {
+  // Load Babel standalone for TS transpilation
+  if (!window.Babel) {
+    logToConsole('Loading TypeScript transpiler…', 'info');
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js');
+  }
+  let transpiled;
+  try {
+    transpiled = Babel.transform(code, { presets: ['typescript'], filename: 'code.ts' }).code;
+  } catch (e) {
+    throw new Error('TypeScript error: ' + e.message);
+  }
+  return runJS(transpiled);
+}
+
+// Python via Pyodide
+async function runPython(code) {
+  if (!pyodideReady) {
+    if (!pyodideLoading) {
+      pyodideLoading = true;
+      logToConsole('Loading Pyodide (first run only — ~10 MB)…', 'info');
+      await loadScript('https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js');
+      pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/' });
+      pyodideReady = true;
+      logToConsole('Pyodide ready ✓', 'success');
+    } else {
+      throw new Error('Pyodide is still loading, please try again in a moment.');
+    }
+  }
+
+  const logs = [];
+  pyodide.setStdout({ batched: s => logToConsole(s, 'log') });
+  pyodide.setStderr({ batched: s => logToConsole(s, 'error') });
+
+  try {
+    await pyodide.runPythonAsync(code);
+  } catch (e) {
+    throw new Error(e.message);
+  }
+}
+
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = res;
+    s.onerror = () => rej(new Error('Failed to load: ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  RESIZE HANDLE
+// ─────────────────────────────────────────────
+const handle = document.getElementById('resize-handle');
+const editorPane = document.getElementById('editor-pane');
+const outputPane = document.getElementById('output-pane');
+let dragging = false, startX, startEdW, startOutW;
+
+handle.addEventListener('mousedown', e => {
+  dragging = true;
+  startX = e.clientX;
+  startEdW = editorPane.offsetWidth;
+  startOutW = outputPane.offsetWidth;
+  handle.classList.add('dragging');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+});
+
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - startX;
+  const total = startEdW + startOutW;
+  const newEd = Math.max(220, Math.min(total - 220, startEdW + dx));
+  editorPane.style.flex = `0 0 ${newEd}px`;
+  outputPane.style.flex = `0 0 ${total - newEd}px`;
+});
+
+document.addEventListener('mouseup', () => {
+  if (!dragging) return;
+  dragging = false;
+  handle.classList.remove('dragging');
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+});
+
+// ─────────────────────────────────────────────
+//  TOAST
+// ─────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+// ─────────────────────────────────────────────
+//  MOBILE TOGGLE
+// ─────────────────────────────────────────────
+let mobileShowOutput = false;
+document.getElementById('mob-toggle').addEventListener('click', () => {
+  mobileShowOutput = !mobileShowOutput;
+  editorPane.classList.toggle('mobile-hide', mobileShowOutput);
+  outputPane.classList.toggle('mobile-show', mobileShowOutput);
+  document.getElementById('mob-toggle').textContent = mobileShowOutput ? 'Back to Editor' : 'Switch to Output';
+});
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+renderTabs();
+loadTab(activeTab);
+updateLineNumbers();
+updateStats();
+</script>
+</body>
+</html>
