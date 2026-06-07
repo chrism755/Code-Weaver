@@ -1,1074 +1,904 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CodeSpace — Live Playground</title>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Dashboard — NETLINK AGENCIES</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --primary:#0057FF;--accent:#00D4FF;--gold:#FFD700;--green:#00C853;
+  --red:#FF3B3B;--yellow:#FFB300;--bg:#f0f2f5;--bg2:#0A1628;--bg3:#0F1F3D;
+  --card:#111E35;--card2:#162540;--border:#1E3560;--text:#E8F0FF;
+  --text2:#8BA4CC;--white:#FFFFFF;--sw:260px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.layout{display:flex;min-height:100vh;}
 
-    :root {
-      --bg:        #0d0f14;
-      --surface:   #13161e;
-      --panel:     #191c26;
-      --border:    #252933;
-      --accent:    #00e5a0;
-      --accent2:   #6c63ff;
-      --warn:      #ff6b6b;
-      --text:      #e2e8f0;
-      --muted:     #5a6176;
-      --tab-h:     42px;
-      --bar-h:     52px;
-    }
+/* SIDEBAR */
+.sidebar{width:var(--sw);background:var(--bg2);border-right:1px solid var(--border);position:fixed;top:0;left:0;bottom:0;z-index:100;transform:translateX(-100%);transition:.3s;display:flex;flex-direction:column;}
+.sidebar.open{transform:translateX(0);}
+.sb-head{padding:18px 16px;border-bottom:1px solid var(--border);}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.logo-text{font-family:'Orbitron',monospace;font-weight:900;font-size:12px;color:var(--white);line-height:1.1;}
+.logo-sub{font-size:8px;color:var(--accent);letter-spacing:3px;font-family:'Orbitron',monospace;}
+.sb-nav{flex:1;overflow-y:auto;padding:8px 0;}
+.sb-nav::-webkit-scrollbar{width:3px;}
+.sb-nav::-webkit-scrollbar-thumb{background:var(--border);}
+.ni{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text2);border-left:3px solid transparent;text-decoration:none;transition:.15s;}
+.ni:hover,.ni.active{background:rgba(0,87,255,.1);color:var(--accent);border-left-color:var(--primary);}
+.ni-icon{font-size:15px;width:20px;text-align:center;}
+.ns{padding:12px 16px 4px;font-size:9px;font-weight:800;color:var(--text2);opacity:.4;letter-spacing:2px;text-transform:uppercase;}
+.arr{margin-left:auto;font-size:10px;}
+.sub-nav{display:none;background:rgba(0,0,0,.2);}
+.sub-nav.open{display:block;}
+.sub-ni{padding-left:44px;font-size:12px;}
+.main{flex:1;}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99;display:none;}
+.overlay.show{display:block;}
 
-    html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; }
+/* TOPBAR — red gradient matching screenshot */
+.topbar{
+  background:linear-gradient(90deg,#e84040,#e05a20);
+  padding:14px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;
+}
+.tb-left{display:flex;align-items:center;gap:12px;}
+.menu-btn{background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1;}
+.tb-title{font-size:17px;font-weight:800;color:#fff;letter-spacing:.3px;}
+.tb-right{display:flex;align-items:center;gap:10px;}
+.notif-btn{position:relative;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;}
+.notif-badge{
+  position:absolute;top:-5px;right:-5px;
+  background:#FFD700;color:#000;border-radius:50%;
+  width:17px;height:17px;font-size:9px;font-weight:900;
+  display:flex;align-items:center;justify-content:center;
+}
 
-    /* ── TOP BAR ── */
-    #topbar {
-      height: var(--bar-h);
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      padding: 0 18px;
-      gap: 14px;
-      user-select: none;
-    }
-    #logo {
-      font-size: 1.15rem;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      color: var(--accent);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    #logo svg { width: 22px; height: 22px; }
+.content{padding:0;max-width:500px;margin:0 auto;}
 
-    .top-spacer { flex: 1; }
+/* GREETING BAR — dark navy */
+.greeting-bar{
+  background:linear-gradient(135deg,#1a1a2e,#16213e);
+  padding:14px 16px 12px;
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+.greeting-top{display:flex;align-items:center;justify-content:space-between;}
+.greeting-text{font-size:14px;font-weight:700;color:#fff;}
+.greeting-text .uname{color:#2ecc71;}
+.checkmark{color:#2ecc71;font-size:13px;margin-left:4px;}
+.greeting-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:3px;}
+.level-badge{
+  background:#e74c3c;color:#fff;border-radius:10px;
+  width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+  font-size:17px;font-weight:900;
+}
 
-    /* Language selector */
-    #lang-select {
-      appearance: none;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.78rem;
-      padding: 6px 30px 6px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='%235a6176'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 8px center;
-      outline: none;
-      transition: border-color .2s;
-    }
-    #lang-select:focus { border-color: var(--accent); }
+/* TOP 2-COLUMN STATS */
+.top-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 10px 0;}
+.ts-card{padding:18px 14px;display:flex;flex-direction:column;gap:3px;position:relative;overflow:hidden;border-radius:14px;}
+.ts-card.expenses{background:linear-gradient(135deg,#e84040,#c0392b);}
+.ts-card.earnings{background:linear-gradient(135deg,#e67e22,#d35400);}
+.ts-label{font-size:9px;font-weight:900;letter-spacing:1.5px;color:rgba(255,255,255,.85);text-transform:uppercase;}
+.ts-amount{font-size:26px;font-weight:900;color:#fff;margin-top:5px;font-family:'Nunito',sans-serif;}
+.ts-icon{position:absolute;right:12px;bottom:10px;font-size:30px;opacity:.25;}
 
-    /* Buttons */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 16px;
-      border-radius: 7px;
-      font-family: 'Syne', sans-serif;
-      font-weight: 600;
-      font-size: 0.8rem;
-      border: none;
-      cursor: pointer;
-      transition: opacity .15s, transform .1s;
-    }
-    .btn:active { transform: scale(.97); }
-    .btn-run {
-      background: var(--accent);
-      color: #000;
-    }
-    .btn-run:hover { opacity: .88; }
-    .btn-clear {
-      background: var(--panel);
-      color: var(--muted);
-      border: 1px solid var(--border);
-    }
-    .btn-clear:hover { color: var(--text); border-color: var(--muted); }
+/* STAT CARDS */
+.stat-cards{padding:10px 10px;display:flex;flex-direction:column;gap:10px;}
+.stat-card{
+  border-radius:16px;padding:18px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:relative;overflow:hidden;min-height:95px;
+}
+.stat-card.balance{background:linear-gradient(135deg,#2980b9,#1a5499);}
+.stat-card.withdrawn{background:linear-gradient(135deg,#e84040,#c0392b);}
+.stat-card.pending{background:linear-gradient(135deg,#e67e22,#ca6f1e);}
+.stat-card.karibu{background:linear-gradient(135deg,#8e44ad,#6c3483);}
+.stat-card.weekly{background:linear-gradient(135deg,#27ae60,#1e8449);}
+.stat-left{display:flex;flex-direction:column;}
+.stat-label{
+  font-size:10px;font-weight:900;letter-spacing:1.5px;
+  color:rgba(255,255,255,.85);text-transform:uppercase;margin-bottom:6px;
+}
+.stat-amount{font-size:28px;font-weight:900;color:#fff;font-family:'Nunito',sans-serif;}
+.stat-pill{
+  display:inline-flex;align-items:center;gap:4px;
+  background:rgba(0,0,0,.3);border-radius:20px;
+  padding:4px 11px;font-size:10px;font-weight:800;
+  color:#fff;margin-top:8px;width:fit-content;
+}
+.stat-icon{font-size:42px;opacity:.25;position:absolute;right:18px;top:50%;transform:translateY(-50%);}
 
-    /* ── MAIN LAYOUT ── */
-    #workspace {
-      display: flex;
-      height: calc(100vh - var(--bar-h));
-      overflow: hidden;
-    }
+/* REFERRAL */
+.ref-section{padding:0 10px 14px;}
+.ref-box{background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);border-radius:14px;padding:16px;}
+.ref-title{font-family:'Orbitron',monospace;font-size:10px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.1);}
+.ref-link{background:rgba(0,0,0,.35);border-radius:9px;padding:11px;font-size:11px;color:#00D4FF;word-break:break-all;margin:9px 0;font-family:monospace;}
+.ref-btns{display:flex;gap:7px;flex-wrap:wrap;}
+.rb{flex:1;min-width:65px;padding:8px 4px;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;}
+.rb.cp{background:var(--primary);color:#fff;}
+.rb.wa{background:#25D366;color:#fff;}
+.rb.fb{background:#1877F2;color:#fff;}
+.rb.tg{background:#2CA5E0;color:#fff;}
+.lgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+.lc{background:rgba(0,0,0,.3);border-radius:9px;padding:11px;text-align:center;}
+.ln{font-size:10px;color:rgba(255,255,255,.5);font-weight:700;}
+.la{font-family:'Orbitron',monospace;font-size:14px;color:var(--gold);font-weight:900;}
 
-    /* ── EDITOR PANE ── */
-    #editor-pane {
-      flex: 1 1 55%;
-      min-width: 280px;
-      display: flex;
-      flex-direction: column;
-      border-right: 1px solid var(--border);
-    }
+/* FORMS */
+.fg{margin-bottom:14px;}
+label{display:block;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px;text-transform:uppercase;}
+input,textarea{width:100%;background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-family:'Nunito',sans-serif;font-size:14px;outline:none;}
+input:focus,textarea:focus{border-color:var(--primary);}
+.btn{width:100%;padding:12px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;margin-top:4px;}
+.ok{background:rgba(0,200,83,.12);border:1.5px solid var(--green);color:#69F0AE;border-radius:10px;padding:12px;font-size:13px;margin:10px 0;display:none;}
+.err{background:rgba(255,59,59,.12);border:1.5px solid var(--red);color:#FF8A80;border-radius:10px;padding:12px;font-size:13px;margin:10px 0;display:none;}
 
-    /* Tab bar */
-    #tab-bar {
-      height: var(--tab-h);
-      background: var(--surface);
-      display: flex;
-      align-items: flex-end;
-      border-bottom: 1px solid var(--border);
-      padding: 0 10px;
-      gap: 2px;
-      overflow-x: auto;
-    }
-    #tab-bar::-webkit-scrollbar { height: 3px; }
-    #tab-bar::-webkit-scrollbar-thumb { background: var(--border); }
-
-    .tab {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 0 14px;
-      height: 34px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.76rem;
-      color: var(--muted);
-      cursor: pointer;
-      border-radius: 6px 6px 0 0;
-      border: 1px solid transparent;
-      border-bottom: none;
-      white-space: nowrap;
-      transition: color .15s, background .15s;
-      user-select: none;
-    }
-    .tab.active {
-      background: var(--panel);
-      color: var(--text);
-      border-color: var(--border);
-    }
-    .tab:not(.active):hover { color: var(--text); background: rgba(255,255,255,.03); }
-
-    .tab-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-    .dot-html { background: #e34c26; }
-    .dot-css  { background: #264de4; }
-    .dot-js   { background: #f7df1e; }
-    .dot-py   { background: #3572a5; }
-    .dot-ts   { background: #3178c6; }
-
-    .tab-close {
-      width: 14px; height: 14px;
-      border-radius: 3px;
-      display: grid; place-items: center;
-      font-size: 0.65rem;
-      color: var(--muted);
-      opacity: 0;
-      transition: opacity .15s, background .15s;
-    }
-    .tab:hover .tab-close { opacity: 1; }
-    .tab-close:hover { background: rgba(255,107,107,.25); color: var(--warn); }
-
-    #add-tab {
-      margin-left: 4px;
-      margin-bottom: 4px;
-      width: 26px; height: 26px;
-      border-radius: 5px;
-      background: none;
-      border: 1px dashed var(--border);
-      color: var(--muted);
-      font-size: 1rem;
-      cursor: pointer;
-      display: grid; place-items: center;
-      transition: border-color .15s, color .15s;
-      flex-shrink: 0;
-    }
-    #add-tab:hover { border-color: var(--accent); color: var(--accent); }
-
-    /* Code area */
-    #editor-wrap {
-      flex: 1;
-      display: flex;
-      overflow: hidden;
-      background: var(--panel);
-    }
-
-    #line-numbers {
-      width: 46px;
-      padding: 16px 0;
-      background: var(--surface);
-      text-align: right;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.78rem;
-      line-height: 1.65;
-      color: var(--muted);
-      overflow: hidden;
-      user-select: none;
-      padding-right: 10px;
-      flex-shrink: 0;
-    }
-
-    #code-editor {
-      flex: 1;
-      padding: 16px 16px 16px 10px;
-      background: transparent;
-      border: none;
-      outline: none;
-      resize: none;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
-      line-height: 1.65;
-      color: var(--text);
-      caret-color: var(--accent);
-      tab-size: 2;
-      overflow-y: auto;
-      white-space: pre;
-      overflow-wrap: normal;
-    }
-    #code-editor::-webkit-scrollbar { width: 6px; height: 6px; }
-    #code-editor::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-    /* ── STATUS BAR ── */
-    #status-bar {
-      height: 26px;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      padding: 0 14px;
-      gap: 18px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.68rem;
-      color: var(--muted);
-    }
-    #status-bar span { display: flex; align-items: center; gap: 5px; }
-    #cursor-pos { color: var(--text); }
-
-    /* ── OUTPUT PANE ── */
-    #output-pane {
-      flex: 1 1 45%;
-      min-width: 240px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    #output-header {
-      height: var(--tab-h);
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      gap: 10px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--muted);
-      letter-spacing: .04em;
-      text-transform: uppercase;
-    }
-    #output-header .badge {
-      background: var(--accent);
-      color: #000;
-      border-radius: 4px;
-      font-size: 0.6rem;
-      padding: 2px 6px;
-      font-weight: 700;
-    }
-    .out-spacer { flex: 1; }
-
-    #output-tabs {
-      display: flex;
-      gap: 4px;
-    }
-    .out-tab {
-      padding: 4px 10px;
-      border-radius: 5px;
-      font-size: 0.72rem;
-      cursor: pointer;
-      color: var(--muted);
-      transition: background .15s, color .15s;
-    }
-    .out-tab.active { background: var(--panel); color: var(--text); }
-    .out-tab:hover:not(.active) { color: var(--text); }
-
-    /* Preview iframe */
-    #preview-frame {
-      flex: 1;
-      border: none;
-      background: #fff;
-      display: block;
-    }
-
-    /* Console output */
-    #console-out {
-      flex: 1;
-      background: var(--bg);
-      overflow-y: auto;
-      padding: 14px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.8rem;
-      line-height: 1.6;
-      display: none;
-    }
-    #console-out::-webkit-scrollbar { width: 5px; }
-    #console-out::-webkit-scrollbar-thumb { background: var(--border); }
-
-    .log-line { display: flex; gap: 10px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.03); }
-    .log-line:last-child { border-bottom: none; }
-    .log-icon { flex-shrink: 0; width: 16px; text-align: center; }
-    .log-text { flex: 1; word-break: break-all; color: var(--text); }
-    .log-line.log-error .log-text { color: var(--warn); }
-    .log-line.log-warn .log-text { color: #ffd166; }
-    .log-line.log-info .log-text { color: #74c0fc; }
-    .log-line.log-success .log-text { color: var(--accent); }
-
-    /* Empty console */
-    #console-empty {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      gap: 10px;
-      color: var(--muted);
-      font-family: 'Syne', sans-serif;
-    }
-    #console-empty svg { opacity: .3; }
-
-    /* ── RESIZE HANDLE ── */
-    #resize-handle {
-      width: 5px;
-      background: var(--border);
-      cursor: col-resize;
-      flex-shrink: 0;
-      transition: background .15s;
-    }
-    #resize-handle:hover, #resize-handle.dragging { background: var(--accent); }
-
-    /* ── KEYBOARD SHORTCUT HINT ── */
-    .kbd {
-      display: inline-block;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 5px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.68rem;
-      color: var(--muted);
-    }
-
-    /* ── RUN SPINNER ── */
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spinner {
-      width: 12px; height: 12px;
-      border: 2px solid rgba(0,0,0,.25);
-      border-top-color: #000;
-      border-radius: 50%;
-      animation: spin .5s linear infinite;
-    }
-
-    /* ── TOAST ── */
-    #toast {
-      position: fixed;
-      bottom: 36px;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.78rem;
-      padding: 8px 18px;
-      border-radius: 8px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .25s, transform .25s;
-      z-index: 999;
-    }
-    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-    /* ── MOBILE NOTICE ── */
-    #mobile-bar {
-      display: none;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 8px 14px;
-      font-size: 0.75rem;
-      color: var(--muted);
-      gap: 8px;
-      align-items: center;
-    }
-    @media (max-width: 640px) {
-      #mobile-bar { display: flex; }
-      #editor-pane { flex: none; width: 100%; }
-      #resize-handle { display: none; }
-      #output-pane { display: none; }
-      #workspace { flex-direction: column; }
-      #output-pane.mobile-show { display: flex; width: 100%; flex: 1; }
-      #editor-pane.mobile-hide { display: none; }
-    }
-  </style>
+/* TASK PAGES */
+.tc{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;}
+.tc h3{font-size:14px;font-weight:800;color:var(--white);margin-bottom:6px;}
+.tc p{font-size:13px;color:var(--text2);line-height:1.6;}
+.reward{display:inline-flex;align-items:center;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);border-radius:20px;padding:3px 11px;font-size:11px;font-weight:800;color:var(--gold);margin-top:8px;}
+.vc{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.vi h4{font-size:13px;font-weight:800;color:var(--white);}
+.vi p{font-size:11px;color:var(--text2);margin-top:2px;}
+.wb{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;}
+.qc{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:10px;}
+.qq{font-size:14px;font-weight:700;color:var(--white);margin-bottom:12px;}
+.qopts{display:grid;gap:7px;}
+.qo{background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;padding:11px 14px;cursor:pointer;font-size:13px;font-weight:600;transition:.2s;}
+.qo:hover{border-color:var(--primary);color:var(--accent);}
+.qo.correct{border-color:var(--green);background:rgba(0,200,83,.1);color:#69F0AE;}
+.qo.wrong{border-color:var(--red);background:rgba(255,59,59,.1);color:#FF8A80;}
+.wa-btn{width:100%;padding:12px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer;background:#25D366;color:#fff;margin-top:8px;}
+.co-note{background:rgba(0,87,255,.08);border:1.5px solid var(--primary);border-radius:12px;padding:14px;font-size:13px;color:var(--accent);line-height:1.7;margin-bottom:16px;}
+.co-note strong{color:#fff;}
+.pav{width:72px;height:72px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;margin:0 auto 12px;}
+.prow{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;justify-content:space-between;margin-bottom:8px;}
+.pl{font-size:11px;color:var(--text2);font-weight:700;}
+.pv{font-size:13px;color:#fff;font-weight:700;}
+.tt{width:100%;border-collapse:collapse;}
+.tt th{background:var(--primary);color:#fff;padding:9px 12px;text-align:left;font-size:11px;font-weight:800;}
+.tt td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px;}
+.tt tr:nth-child(even) td{background:rgba(0,87,255,.04);}
+.day{background:var(--card2);border-radius:5px;padding:2px 8px;font-size:10px;font-weight:800;color:var(--accent);}
+.du{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;}
+.sb-act{background:rgba(0,200,83,.15);color:var(--green);padding:2px 9px;border-radius:20px;font-size:10px;font-weight:800;}
+.sb-ina{background:rgba(255,59,59,.15);color:var(--red);padding:2px 9px;border-radius:20px;font-size:10px;font-weight:800;}
+.wa-sm{background:#25D366;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:700;}
+.loader{position:fixed;inset:0;background:rgba(5,13,26,.95);z-index:9999;display:none;align-items:center;justify-content:center;}
+.loader.show{display:flex;}
+.ring{width:50px;height:50px;border:4px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.inner-pad{padding:14px 12px;}
+</style>
 </head>
 <body>
-
-<!-- TOP BAR -->
-<div id="topbar">
-  <div id="logo">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-    </svg>
-    CodeSpace
-  </div>
-
-  <select id="lang-select">
-    <option value="html">HTML / CSS / JS</option>
-    <option value="js">JavaScript</option>
-    <option value="py">Python (Pyodide)</option>
-    <option value="ts">TypeScript</option>
-  </select>
-
-  <span class="kbd">Ctrl + Enter</span>
-
-  <div class="top-spacer"></div>
-
-  <button class="btn btn-clear" id="btn-clear">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-    Clear
-  </button>
-  <button class="btn btn-run" id="btn-run">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-    Run
-  </button>
-</div>
-
-<!-- MOBILE TOGGLE -->
-<div id="mobile-bar">
-  <span>📱 Mobile mode —</span>
-  <button class="btn btn-clear" id="mob-toggle" style="padding:4px 10px;font-size:.72rem">Switch to Output</button>
-</div>
-
-<!-- WORKSPACE -->
-<div id="workspace">
-
-  <!-- EDITOR PANE -->
-  <div id="editor-pane">
-    <div id="tab-bar">
-      <!-- tabs injected by JS -->
-      <button id="add-tab" title="New file">+</button>
+<div class="loader" id="loader"><div class="ring"></div></div>
+<div class="overlay" id="overlay" onclick="closeSB()"></div>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="sb-head"><div class="logo"><div class="logo-icon">💸</div><div><div class="logo-text">CASHLINK</div><div class="logo-sub">AGENCIES</div></div></div></div>
+    <div class="sb-nav">
+      <a class="ni active" href="/dashboard.html"><span class="ni-icon">🏠</span>Home</a>
+      <a class="ni" href="/dashboard/tournaments.html"><span class="ni-icon">🏆</span>E-Tournaments</a>
+      <a class="ni" href="/dashboard/karibu.html"><span class="ni-icon">🎁</span>Karibu Bonus</a>
+      <a class="ni" href="/dashboard/payclients.html"><span class="ni-icon">💸</span>Pay for Clients</a>
+      <a class="ni" href="/dashboard/deposit.html"><span class="ni-icon">💰</span>Deposit</a>
+      <a class="ni" href="/dashboard/mentorship.html"><span class="ni-icon">🎓</span>Mentorship</a>
+      <a class="ni" href="/dashboard/companyadvert.html"><span class="ni-icon">📢</span>Company Advert</a>
+      <a class="ni" href="/dashboard/betting.html"><span class="ni-icon">⚽</span>Betting Prediction</a>
+      <a class="ni" href="/dashboard/cashout.html"><span class="ni-icon">💳</span>Cashout</a>
+      <a class="ni" href="/dashboard/article.html"><span class="ni-icon">📰</span>Article</a>
+      <a class="ni" href="/dashboard/viewads.html"><span class="ni-icon">👁️</span>View Ads</a>
+      <div class="ns">Videos</div>
+      <a class="ni" href="/dashboard/tiktok.html"><span class="ni-icon">🎵</span>TikTok Videos</a>
+      <a class="ni" href="/dashboard/instagram.html"><span class="ni-icon">📸</span>Instagram Videos</a>
+      <a class="ni" href="/dashboard/youtube.html"><span class="ni-icon">▶️</span>YouTube Videos</a>
+      <div class="ni" onclick="toggleSub('sw',this)"><span class="ni-icon">📤</span>Withdraw Tasks<span class="arr">▾</span></div>
+      <div class="sub-nav" id="sw">
+        <a class="ni sub-ni" href="/dashboard/withdraw-videos.html">Videos</a>
+        <a class="ni sub-ni" href="/dashboard/withdraw-surveys.html">Surveys</a>
+        <a class="ni sub-ni" href="/dashboard/withdraw-quiz.html">Trivia Quiz</a>
+        <a class="ni sub-ni" href="/dashboard/withdraw-numgame.html">Number Game</a>
+      </div>
+      <div class="ni" onclick="toggleSub('sd',this)"><span class="ni-icon">👥</span>Downlines<span class="arr">▾</span></div>
+      <div class="sub-nav" id="sd">
+        <a class="ni sub-ni" href="/dashboard/downlines-1.html">Level 1</a>
+        <a class="ni sub-ni" href="/dashboard/downlines-2.html">Level 2</a>
+        <a class="ni sub-ni" href="/dashboard/downlines-3.html">Level 3</a>
+      </div>
+      <div class="ns">More</div>
+      <a class="ni" href="/dashboard/wadvert.html"><span class="ni-icon">📲</span>WhatsApp Adverts</a>
+      <a class="ni" href="/dashboard/forex.html"><span class="ni-icon">📈</span>Forex Trading</a>
+      <a class="ni" href="/dashboard/trivia.html"><span class="ni-icon">🧠</span>Trivia Quiz</a>
+      <a class="ni" href="/dashboard/survey.html"><span class="ni-icon">📋</span>Daily Survey</a>
+      <a class="ni" href="/dashboard/mathquiz.html"><span class="ni-icon">🔢</span>Math Quiz</a>
+      <a class="ni" href="/dashboard/numgame.html"><span class="ni-icon">🎲</span>Number Game</a>
+      <a class="ni" href="/dashboard/community.html"><span class="ni-icon">💬</span>Community</a>
+      <a class="ni" href="/dashboard/help.html"><span class="ni-icon">🆘</span>Get Help</a>
+      <a class="ni" href="/dashboard/timetable.html"><span class="ni-icon">🗓️</span>Time Table</a>
+      <a class="ni" href="/dashboard/profile.html"><span class="ni-icon">👤</span>Profile</a>
+      <a class="ni" style="color:var(--red);" onclick="doLogout()"><span class="ni-icon">🚪</span>Log Out</a>
     </div>
-    <div id="editor-wrap">
-      <div id="line-numbers">1</div>
-      <textarea id="code-editor" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
-    </div>
-    <div id="status-bar">
-      <span id="cursor-pos">Ln 1, Col 1</span>
-      <span id="char-count">0 chars</span>
-      <span id="lang-label">HTML</span>
-    </div>
-  </div>
+  </nav>
 
-  <!-- RESIZE HANDLE -->
-  <div id="resize-handle"></div>
-
-  <!-- OUTPUT PANE -->
-  <div id="output-pane">
-    <div id="output-header">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9l3 3-3 3M13 15h3"/></svg>
-      Output
-      <span class="badge" id="output-badge">READY</span>
-      <div class="out-spacer"></div>
-      <div id="output-tabs">
-        <div class="out-tab active" data-tab="preview">Preview</div>
-        <div class="out-tab" data-tab="console">Console</div>
+  <div class="main">
+    <!-- RED TOPBAR -->
+    <div class="topbar">
+      <div class="tb-left">
+        <button class="menu-btn" onclick="openSB()">☰</button>
+        <div class="tb-title">CashLink Agencies</div>
+      </div>
+      <div class="tb-right">
+        <button class="notif-btn">🔔<span class="notif-badge" id="notifCount">0</span></button>
       </div>
     </div>
-    <iframe id="preview-frame" sandbox="allow-scripts allow-modals"></iframe>
-    <div id="console-out">
-      <div id="console-empty">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 6l4-4 4 4M8 18l4 4 4-4"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
-        Console is empty — run some code
-      </div>
+
+    <div class="content" id="content">
+      <div style="text-align:center;padding:40px;color:var(--text2);">Loading...</div>
     </div>
   </div>
-
 </div>
 
-<!-- TOAST -->
-<div id="toast"></div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-<script>
-// ─────────────────────────────────────────────
-//  STATE
-// ─────────────────────────────────────────────
-const DEFAULTS = {
-  html: `<!DOCTYPE html>
+const app = initializeApp({
+  apiKey:"AIzaSyCCFExYKkXxauIXVv2HzNHbNnizL6MF_p4",
+  authDomain:"netlink-agencies-6399e.firebaseapp.com",
+  projectId:"netlink-agencies-6399e",
+  storageBucket:"netlink-agencies-6399e.firebasestorage.app",
+  messagingSenderId:"546397751362",
+  appId:"1:546397751362:web:c74e057b2b0ceb6c0745db"
+});
+const auth = getAuth(app), db = getFirestore(app);
+let U = null, UD = null;
+let rendered = false;
+
+// ── INSTANT RENDER from localStorage cache ──────────────────────
+const cached = localStorage.getItem('nlUser');
+if (cached) {
+  try {
+    UD = JSON.parse(cached);
+    rendered = true;
+    renderHome();
+  } catch(e) { localStorage.removeItem('nlUser'); }
+}
+
+// ── TIMEOUT FALLBACK: if Firebase takes too long, redirect to login ──
+const authTimeout = setTimeout(() => {
+  if (!rendered) {
+    document.getElementById('content').innerHTML = `
+      <div style="text-align:center;padding:40px;">
+        <div style="font-size:40px;margin-bottom:12px;">⚠️</div>
+        <div style="color:#fff;font-weight:700;font-size:15px;margin-bottom:8px;">Connection Timeout</div>
+        <div style="color:var(--text2);font-size:13px;margin-bottom:20px;">Taking too long. Check your internet connection.</div>
+        <button onclick="window.location.reload()" style="background:var(--primary);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;">🔄 Retry</button>
+        <br><br>
+        <a href="/login.html" style="color:var(--accent);font-size:13px;">Back to Login</a>
+      </div>`;
+  }
+}, 8000); // 8 second timeout
+
+onAuthStateChanged(auth, async u => {
+  clearTimeout(authTimeout);
+  if (!u) { localStorage.removeItem('nlUser'); window.location.href = '/login.html'; return; }
+  U = u;
+  try {
+    const snap = await getDoc(doc(db, 'users', u.uid));
+    if (!snap.exists()) { localStorage.removeItem('nlUser'); window.location.href = '/login.html'; return; }
+    UD = snap.data();
+    if (!UD.activated) { window.location.href = '/activate.html'; return; }
+    localStorage.setItem('nlUser', JSON.stringify({...UD, uid: u.uid}));
+    rendered = true;
+    renderHome(); // re-render with fresh data
+  } catch(err) {
+    // If Firestore fails but we already showed cached data, stay on page
+    if (!rendered) {
+      document.getElementById('content').innerHTML = `
+        <div style="text-align:center;padding:40px;">
+          <div style="font-size:40px;margin-bottom:12px;">📡</div>
+          <div style="color:#fff;font-weight:700;font-size:15px;margin-bottom:8px;">Network Error</div>
+          <div style="color:var(--text2);font-size:13px;margin-bottom:20px;">${err.message}</div>
+          <button onclick="window.location.reload()" style="background:var(--primary);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;">🔄 Retry</button>
+        </div>`;
+    }
+  }
+});
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return '🌤️ Good morning';
+  if (h < 17) return '☀️ Good afternoon';
+  return '🌙 Good evening';
+}
+
+function fmt(n) {
+  return Number(n || 0).toLocaleString('en-KE');
+}
+
+  <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>My Page</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: system-ui, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-    }
-    .card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 16px;
-      padding: 40px 50px;
-      text-align: center;
-      box-shadow: 0 20px 60px rgba(0,0,0,.4);
-    }
-    h1 { color: #00e5a0; margin-bottom: 8px; }
-    p  { color: #94a3b8; }
-    button {
-      margin-top: 20px;
-      background: #00e5a0;
-      border: none;
-      color: #000;
-      padding: 10px 24px;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    button:hover { opacity: .85; }
-  </style>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Dashboard — NETLINK AGENCIES</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root{--sw:260px;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Nunito',sans-serif;background:#f0f2f5;color:#222;min-height:100vh;}
+.layout{display:flex;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sw);background:#1a0a2e;border-right:1px solid #2d1a4e;position:fixed;top:0;left:0;bottom:0;z-index:100;transform:translateX(-100%);transition:.3s;display:flex;flex-direction:column;}
+.sidebar.open{transform:translateX(0);}
+.sb-head{padding:16px;border-bottom:1px solid #2d1a4e;background:linear-gradient(135deg,#E91E8C,#FF4DB8);}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:38px;height:38px;background:rgba(255,255,255,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.logo-text{font-weight:900;font-size:15px;color:#fff;line-height:1.1;}
+.logo-sub{font-size:8px;color:rgba(255,255,255,.8);letter-spacing:2px;}
+.sb-nav{flex:1;overflow-y:auto;padding:6px 0;}
+.sb-nav::-webkit-scrollbar{width:3px;}
+.sb-nav::-webkit-scrollbar-thumb{background:#2d1a4e;}
+.ni{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;font-weight:600;color:#c9a8e0;border-left:3px solid transparent;text-decoration:none;transition:.15s;cursor:pointer;}
+.ni:hover,.ni.active{background:rgba(233,30,140,.15);color:#fff;border-left-color:#E91E8C;}
+.ni-icon{font-size:15px;width:20px;text-align:center;}
+.ns{padding:12px 16px 4px;font-size:9px;font-weight:800;color:#FF80CE;opacity:.8;letter-spacing:2px;text-transform:uppercase;}
+.arr{margin-left:auto;font-size:10px;}
+.sub-nav{display:none;background:rgba(0,0,0,.3);}
+.sub-nav.open{display:block;}
+.sub-ni{padding-left:44px!important;font-size:12px;}
+
+/* ── TOPBAR ── */
+.main{flex:1;}
+.topbar{background:linear-gradient(135deg,#E91E8C,#FF4DB8);padding:13px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50;box-shadow:0 2px 20px rgba(233,30,140,.4);}
+.menu-btn{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;}
+.tb-title{font-size:15px;font-weight:800;color:#fff;flex:1;}
+.notif-btn{background:rgba(255,255,255,.2);border:none;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;position:relative;}
+.notif-badge{position:absolute;top:-2px;right:-2px;background:#FFD700;color:#000;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;}
+.avatar{width:34px;height:34px;background:rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;border:2px solid rgba(255,255,255,.5);}
+
+/* ── CONTENT ── */
+.content{padding:16px 14px;max-width:500px;margin:0 auto;}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99;display:none;}
+.overlay.show{display:block;}
+
+/* ── GREETING ── */
+.greeting-box{background:#fff;border-radius:16px;padding:16px 18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.greeting-text{font-size:16px;font-weight:800;color:#222;margin-bottom:4px;}
+.greeting-sub{font-size:12px;color:#888;}
+.verified-badge{display:inline-flex;align-items:center;gap:3px;background:#E3F2FD;color:#1565C0;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:800;margin-left:4px;}
+
+/* ── TOP 2 CARDS ── */
+.top-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.top-card{border-radius:16px;padding:16px;position:relative;overflow:hidden;min-height:90px;}
+.top-card.expenses{background:linear-gradient(135deg,#FF6B35,#FF8C42);}
+.top-card.earnings{background:linear-gradient(135deg,#FF9800,#FFB74D);}
+.top-card-label{font-size:10px;font-weight:800;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.top-card-amount{font-size:22px;font-weight:900;color:#fff;}
+.top-card-icon{position:absolute;right:12px;bottom:12px;font-size:28px;opacity:.35;}
+.top-card-trend{font-size:10px;color:rgba(255,255,255,.8);margin-top:4px;}
+
+/* ── STAT CARDS ── */
+.stat-card{border-radius:16px;padding:18px 20px;margin-bottom:12px;position:relative;overflow:hidden;display:flex;justify-content:space-between;align-items:center;min-height:90px;}
+.stat-card.blue{background:linear-gradient(135deg,#1565C0,#1E88E5);}
+.stat-card.red{background:linear-gradient(135deg,#C62828,#E53935);}
+.stat-card.purple{background:linear-gradient(135deg,#6A1B9A,#8E24AA);}
+.stat-card.green{background:linear-gradient(135deg,#1B5E20,#388E3C);}
+.stat-card.teal{background:linear-gradient(135deg,#00695C,#00897B);}
+.stat-info{}
+.stat-label{font-size:10px;font-weight:800;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.stat-amount{font-size:26px;font-weight:900;color:#fff;line-height:1;}
+.stat-pill{display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,.2);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;color:#fff;margin-top:6px;}
+.stat-icon{font-size:38px;opacity:.3;margin-left:10px;}
+
+/* ── REFERRAL ── */
+.ref-card{background:#fff;border-radius:16px;padding:18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.ref-title{font-size:13px;font-weight:800;color:#E91E8C;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.ref-link-box{background:#f8f0ff;border:1.5px solid #E91E8C;border-radius:10px;padding:10px 13px;font-size:11px;color:#6A1B9A;word-break:break-all;font-family:monospace;margin-bottom:12px;}
+.ref-btns{display:flex;gap:8px;flex-wrap:wrap;}
+.rb{flex:1;min-width:60px;padding:9px 6px;border:none;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;color:#fff;}
+.rb.cp{background:#E91E8C;}.rb.wa{background:#25D366;}.rb.fb{background:#1877F2;}.rb.tg{background:#2CA5E0;}
+.levels-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;}
+.lc{border-radius:10px;padding:12px;text-align:center;}
+.lc.l1{background:linear-gradient(135deg,#E91E8C,#FF4DB8);}
+.lc.l2{background:linear-gradient(135deg,#1565C0,#1E88E5);}
+.lc.l3{background:linear-gradient(135deg,#6A1B9A,#8E24AA);}
+.ln{font-size:10px;color:rgba(255,255,255,.8);font-weight:700;margin-bottom:4px;}
+.la{font-size:16px;font-weight:900;color:#fff;}
+</style>
 </head>
 <body>
-  <div class="card">
-    <h1>👋 Hello, CodeSpace!</h1>
-    <p>Edit this code and press <strong>Run</strong> (or Ctrl+Enter).</p>
-    <button onclick="alert('It works! 🎉')">Click me</button>
+<div class="overlay" id="ov" onclick="closeSB()"></div>
+<div class="layout">
+  <nav class="sidebar" id="sb">
+    <div class="sb-head"><div class="logo"><div class="logo-icon">🔗</div><div><div class="logo-text">NETLINK</div><div class="logo-sub">AGENCIES</div></div></div></div>
+    <div class="sb-nav">
+      <a class="ni active" href="/dashboard.html"><span class="ni-icon">🏠</span>Home</a>
+      <a class="ni" href="/dashboard/tournaments.html"><span class="ni-icon">🏆</span>E-Tournaments</a>
+      <a class="ni" href="/dashboard/karibu.html"><span class="ni-icon">🎁</span>Karibu Bonus</a>
+      <a class="ni" href="/dashboard/payclients.html"><span class="ni-icon">💸</span>Pay for Clients</a>
+      <a class="ni" href="/dashboard/deposit.html"><span class="ni-icon">💰</span>Deposit</a>
+      <a class="ni" href="/dashboard/mentorship.html"><span class="ni-icon">🎓</span>Mentorship</a>
+      <a class="ni" href="/dashboard/companyadvert.html"><span class="ni-icon">📢</span>Company Advert</a>
+      <a class="ni" href="/dashboard/betting.html"><span class="ni-icon">⚽</span>Betting Prediction</a>
+      <a class="ni" href="/dashboard/cashout.html"><span class="ni-icon">💳</span>Cashout</a>
+      <a class="ni" href="/dashboard/article.html"><span class="ni-icon">📰</span>Article</a>
+      <a class="ni" href="/dashboard/viewads.html"><span class="ni-icon">👁️</span>View Ads</a>
+      <div class="ns">Videos</div>
+      <a class="ni" href="/dashboard/tiktok.html"><span class="ni-icon">🎵</span>TikTok Videos</a>
+      <a class="ni" href="/dashboard/instagram.html"><span class="ni-icon">📸</span>Instagram Videos</a>
+      <a class="ni" href="/dashboard/youtube.html"><span class="ni-icon">▶️</span>YouTube Videos</a>
+      <div class="ni" onclick="toggleSub('sw',this)"><span class="ni-icon">📤</span>Withdraw Tasks<span class="arr">▾</span></div>
+      <div class="sub-nav" id="sw">
+        <a class="ni sub-ni" href="/dashboard/withdraw-videos.html">Videos</a>
+        <a class="ni sub-ni" href="/dashboard/withdraw-surveys.html">Surveys</a>
+        <a class="ni sub-ni" href="/dashboard/withdraw-quiz.html">Trivia Quiz</a>
+        <a class="ni sub-ni" href="/dashboard/withdraw-numgame.html">Number Game</a>
+      </div>
+      <div class="ni" onclick="toggleSub('sd',this)"><span class="ni-icon">👥</span>Downlines<span class="arr">▾</span></div>
+      <div class="sub-nav" id="sd">
+        <a class="ni sub-ni" href="/dashboard/downlines-1.html">Level 1</a>
+        <a class="ni sub-ni" href="/dashboard/downlines-2.html">Level 2</a>
+        <a class="ni sub-ni" href="/dashboard/downlines-3.html">Level 3</a>
+      </div>
+      <div class="ns">More</div>
+      <a class="ni" href="/dashboard/wadvert.html"><span class="ni-icon">📲</span>WhatsApp Adverts</a>
+      <a class="ni" href="/dashboard/forex.html"><span class="ni-icon">📈</span>Forex Trading</a>
+      <a class="ni" href="/dashboard/trivia.html"><span class="ni-icon">🧠</span>Trivia Quiz</a>
+      <a class="ni" href="/dashboard/survey.html"><span class="ni-icon">📋</span>Daily Survey</a>
+      <a class="ni" href="/dashboard/mathquiz.html"><span class="ni-icon">🔢</span>Math Quiz</a>
+      <a class="ni" href="/dashboard/numgame.html"><span class="ni-icon">🎲</span>Number Game</a>
+      <a class="ni" href="/dashboard/community.html"><span class="ni-icon">💬</span>Community</a>
+      <a class="ni" href="/dashboard/help.html"><span class="ni-icon">🆘</span>Get Help</a>
+      <a class="ni" href="/dashboard/timetable.html"><span class="ni-icon">🗓️</span>Time Table</a>
+      <a class="ni" href="/dashboard/profile.html"><span class="ni-icon">👤</span>Profile</a>
+      <a class="ni" style="color:#FF5252;" onclick="doLogout()"><span class="ni-icon">🚪</span>Log Out</a>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-btn" onclick="openSB()">☰</button>
+      <div class="tb-title">NETLINK AGENCIES</div>
+      <button class="notif-btn"><span>🔔</span><span class="notif-badge" id="notif-count">0</span></button>
+      <div class="avatar" id="av">U</div>
+    </div>
+
+    <div class="content">
+      <!-- GREETING -->
+      <div class="greeting-box">
+        <div class="greeting-text" id="greeting-text">Good morning ☀️, User!
+          <span class="verified-badge">✔ Verified</span>
+        </div>
+        <div class="greeting-sub">Welcome to NETLINK AGENCIES</div>
+      </div>
+
+      <!-- TOP 2 CARDS -->
+      <div class="top-grid">
+        <div class="top-card expenses">
+          <div class="top-card-label">Expenses</div>
+          <div class="top-card-amount">KES 150</div>
+          <div class="top-card-trend">Activation Fee</div>
+          <div class="top-card-icon">📉</div>
+        </div>
+        <div class="top-card earnings">
+          <div class="top-card-label">Total Earnings</div>
+          <div class="top-card-amount" id="total-earn">KES 0</div>
+          <div class="top-card-trend">↑ All Tasks</div>
+          <div class="top-card-icon">📈</div>
+        </div>
+      </div>
+
+      <!-- ACCOUNT BALANCE -->
+      <div class="stat-card blue">
+        <div class="stat-info">
+          <div class="stat-label">Account Balance</div>
+          <div class="stat-amount" id="acc-balance">KES 0</div>
+          <div class="stat-pill">70%</div>
+        </div>
+        <div class="stat-icon">🛒</div>
+      </div>
+
+      <!-- WITHDRAWN -->
+      <div class="stat-card red">
+        <div class="stat-info">
+          <div class="stat-label">Withdrawn Amount</div>
+          <div class="stat-amount" id="withdrawn">KES 0</div>
+          <div class="stat-pill">↑ Total Withdrawn</div>
+        </div>
+        <div class="stat-icon">↑</div>
+      </div>
+
+      <!-- PENDING -->
+      <div class="stat-card purple">
+        <div class="stat-info">
+          <div class="stat-label">Pending Amount</div>
+          <div class="stat-amount" id="pending">KES 0</div>
+          <div class="stat-pill">⏳ Awaiting Approval</div>
+        </div>
+        <div class="stat-icon">🕐</div>
+      </div>
+
+      <!-- KARIBU BONUS -->
+      <div class="stat-card green">
+        <div class="stat-info">
+          <div class="stat-label">Karibu Bonus</div>
+          <div class="stat-amount" id="karibu">KES 0</div>
+          <div class="stat-pill">89%</div>
+        </div>
+        <div class="stat-icon">💵</div>
+      </div>
+
+      <!-- WEEKLY BONUS -->
+      <div class="stat-card teal">
+        <div class="stat-info">
+          <div class="stat-label">Weekly Bonus</div>
+          <div class="stat-amount" id="weekly">KES 0</div>
+          <div class="stat-pill">20%</div>
+        </div>
+        <div class="stat-icon">📊</div>
+      </div>
+
+      <!-- REFERRAL LINK -->
+      <div class="ref-card">
+        <div class="ref-title">🔗 Your Referral Link</div>
+        <div class="ref-link-box" id="reflink">https://netlinkagencies.linkpc.net/register.html?ref=username</div>
+        <div class="ref-btns">
+          <button class="rb cp" onclick="copyRef()">📋 Copy</button>
+          <button class="rb wa" id="wa-share">WhatsApp</button>
+          <button class="rb fb" id="fb-share">Facebook</button>
+          <button class="rb tg" id="tg-share">Telegram</button>
+        </div>
+        <div class="levels-grid">
+          <div class="lc l1"><div class="ln">Level 1</div><div class="la">KSH 80</div></div>
+          <div class="lc l2"><div class="ln">Level 2</div><div class="la">KSH 20</div></div>
+          <div class="lc l3"><div class="ln">Level 3</div><div class="la">KSH 10</div></div>
+        </div>
+      </div>
+    </div>
   </div>
-</body>
-</html>`,
+</div>
 
-  js: `// JavaScript Playground
-// console.log, console.error, console.warn all appear in the Console tab.
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const app=initializeApp({apiKey:"AIzaSyCCFExYKkXxauIXVv2HzNHbNnizL6MF_p4",authDomain:"netlink-agencies-6399e.firebaseapp.com",projectId:"netlink-agencies-6399e",storageBucket:"netlink-agencies-6399e.firebasestorage.app",messagingSenderId:"546397751362",appId:"1:546397751362:web:c74e057b2b0ceb6c0745db"});
+const auth=getAuth(app),db=getFirestore(app);
 
-const greet = name => \`Hello, \${name}!\`;
-console.log(greet('World'));
+onAuthStateChanged(auth,async u=>{
+  if(!u){window.location.replace('/login.html');return;}
+  const snap=await getDoc(doc(db,'users',u.uid));
+  if(!snap.exists()||!snap.data().activated){window.location.replace('/activate.html');return;}
+  const UD=snap.data();
 
-// Fibonacci
-function fib(n) {
-  if (n <= 1) return n;
-  return fib(n - 1) + fib(n - 2);
-}
+  // Greeting
+  const h=new Date().getHours();
+  const g=h<12?'Good morning ☀️':h<17?'Good afternoon 🌤️':'Good evening 🌙';
+  document.getElementById('greeting-text').innerHTML=g+', <strong>'+UD.username+'</strong>! <span class="verified-badge">✔ Verified</span>';
+  document.getElementById('av').textContent=UD.username.charAt(0).toUpperCase();
 
-for (let i = 0; i <= 10; i++) {
-  console.log(\`fib(\${i}) = \${fib(i)}\`);
-}
+  // Stats
+  document.getElementById('total-earn').textContent='KES '+(UD.totalEarnings||0);
+  document.getElementById('acc-balance').textContent='KES '+(UD.balance||0);
+  document.getElementById('withdrawn').textContent='KES '+(UD.withdrawn||0);
+  document.getElementById('pending').textContent='KES '+(UD.pending||0);
+  document.getElementById('karibu').textContent='KES '+(UD.karibu||0);
+  document.getElementById('weekly').textContent='KES '+(UD.weeklyBonus||0);
 
-// Async example
-async function fetchExample() {
-  try {
-    const res = await fetch('https://jsonplaceholder.typicode.com/todos/1');
-    const data = await res.json();
-    console.info('Fetched:', JSON.stringify(data));
-  } catch (e) {
-    console.error('Fetch failed:', e.message);
-  }
-}
-fetchExample();`,
-
-  py: `# Python Playground (powered by Pyodide — runs in your browser!)
-# First run loads Pyodide (~10 MB). Subsequent runs are instant.
-
-import math, json
-
-def fibonacci(n):
-    a, b = 0, 1
-    seq = []
-    for _ in range(n):
-        seq.append(a)
-        a, b = b, a + b
-    return seq
-
-print("Fibonacci:", fibonacci(12))
-print("Pi ≈", round(math.pi, 6))
-
-data = {"language": "Python", "engine": "Pyodide", "status": "✅ Running"}
-print(json.dumps(data, indent=2))`,
-
-  ts: `// TypeScript Playground
-// (Transpiled via Babel — types are stripped, not checked)
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
-
-const users: User[] = [
-  { id: 1, name: 'Alice', email: 'alice@example.com' },
-  { id: 2, name: 'Bob',   email: 'bob@example.com' },
-];
-
-function formatUser(u: User): string {
-  return \`[\${u.id}] \${u.name} <\${u.email}>\`;
-}
-
-users.forEach(u => console.log(formatUser(u)));
-
-// Generic function
-function first<T>(arr: T[]): T | undefined {
-  return arr[0];
-}
-console.log('First user:', first(users)?.name);`
-};
-
-const DOT_CLASS = { html: 'dot-html', css: 'dot-css', js: 'dot-js', py: 'dot-py', ts: 'dot-ts' };
-
-let tabs = [
-  { id: 1, name: 'index.html', lang: 'html', code: DEFAULTS.html },
-  { id: 2, name: 'script.js',  lang: 'js',   code: DEFAULTS.js   },
-];
-let activeTab = 1;
-let tabCounter = 3;
-let pyodideReady = false;
-let pyodideLoading = false;
-let pyodide = null;
-let currentOutputTab = 'preview';
-
-// ─────────────────────────────────────────────
-//  DOM REFS
-// ─────────────────────────────────────────────
-const tabBar       = document.getElementById('tab-bar');
-const addTabBtn    = document.getElementById('add-tab');
-const langSelect   = document.getElementById('lang-select');
-const codeEditor   = document.getElementById('code-editor');
-const lineNumbers  = document.getElementById('line-numbers');
-const previewFrame = document.getElementById('preview-frame');
-const consoleOut   = document.getElementById('console-out');
-const consoleEmpty = document.getElementById('console-empty');
-const outputBadge  = document.getElementById('output-badge');
-const langLabel    = document.getElementById('lang-label');
-const cursorPos    = document.getElementById('cursor-pos');
-const charCount    = document.getElementById('char-count');
-const btnRun       = document.getElementById('btn-run');
-const btnClear     = document.getElementById('btn-clear');
-const toast        = document.getElementById('toast');
-const outTabs      = document.querySelectorAll('.out-tab');
-
-// ─────────────────────────────────────────────
-//  TABS
-// ─────────────────────────────────────────────
-function renderTabs() {
-  // Remove all tab elements (not the + button)
-  tabBar.querySelectorAll('.tab').forEach(t => t.remove());
-
-  tabs.forEach(tab => {
-    const el = document.createElement('div');
-    el.className = 'tab' + (tab.id === activeTab ? ' active' : '');
-    el.dataset.id = tab.id;
-    el.innerHTML = `
-      <span class="tab-dot ${DOT_CLASS[tab.lang] || 'dot-js'}"></span>
-      ${tab.name}
-      <span class="tab-close" data-close="${tab.id}">✕</span>
-    `;
-    el.addEventListener('click', e => {
-      if (e.target.dataset.close) return;
-      saveCurrentTab();
-      activeTab = tab.id;
-      loadTab(tab.id);
-      renderTabs();
-    });
-    el.querySelector('[data-close]').addEventListener('click', e => {
-      e.stopPropagation();
-      closeTab(tab.id);
-    });
-    tabBar.insertBefore(el, addTabBtn);
-  });
-}
-
-function saveCurrentTab() {
-  const t = tabs.find(t => t.id === activeTab);
-  if (t) t.code = codeEditor.value;
-}
-
-function loadTab(id) {
-  const t = tabs.find(t => t.id === id);
-  if (!t) return;
-  activeTab = t.id;
-  codeEditor.value = t.code;
-  langSelect.value = t.lang;
-  langLabel.textContent = t.lang.toUpperCase();
-  updateLineNumbers();
-  updateStats();
-}
-
-function closeTab(id) {
-  if (tabs.length === 1) { showToast('Cannot close the only tab'); return; }
-  tabs = tabs.filter(t => t.id !== id);
-  if (activeTab === id) {
-    activeTab = tabs[tabs.length - 1].id;
-    loadTab(activeTab);
-  }
-  renderTabs();
-}
-
-function newTab() {
-  saveCurrentTab();
-  const lang = langSelect.value;
-  const names = { html: 'page.html', js: 'script.js', py: 'main.py', ts: 'index.ts' };
-  const tab = { id: tabCounter++, name: names[lang] || 'file.js', lang, code: DEFAULTS[lang] || '' };
-  tabs.push(tab);
-  activeTab = tab.id;
-  renderTabs();
-  loadTab(tab.id);
-}
-
-addTabBtn.addEventListener('click', newTab);
-
-langSelect.addEventListener('change', () => {
-  const t = tabs.find(t => t.id === activeTab);
-  if (t) {
-    t.lang = langSelect.value;
-    const names = { html: 'index.html', js: 'script.js', py: 'main.py', ts: 'index.ts' };
-    t.name = names[t.lang];
-    langLabel.textContent = t.lang.toUpperCase();
-  }
-  renderTabs();
+  // Referral link
+  const ref='https://netlinkagencies.linkpc.net/register.html?ref='+UD.referralCode;
+  document.getElementById('reflink').textContent=ref;
+  document.getElementById('wa-share').onclick=()=>window.open('https://wa.me/?text=Join NETLINK AGENCIES and earn daily! '+encodeURIComponent(ref),'_blank');
+  document.getElementById('fb-share').onclick=()=>window.open('https://facebook.com/sharer/sharer.php?u='+encodeURIComponent(ref),'_blank');
+  document.getElementById('tg-share').onclick=()=>window.open('https://t.me/share/url?url='+encodeURIComponent(ref),'_blank');
 });
 
-// ─────────────────────────────────────────────
-//  LINE NUMBERS
-// ─────────────────────────────────────────────
-function updateLineNumbers() {
-  const lines = codeEditor.value.split('\n').length;
-  lineNumbers.innerHTML = Array.from({ length: lines }, (_, i) => i + 1).join('<br>');
-}
-
-function syncScroll() {
-  lineNumbers.scrollTop = codeEditor.scrollTop;
-}
-
-codeEditor.addEventListener('scroll', syncScroll);
-codeEditor.addEventListener('input', () => { updateLineNumbers(); updateStats(); });
-
-// ─────────────────────────────────────────────
-//  STATUS BAR
-// ─────────────────────────────────────────────
-function updateStats() {
-  charCount.textContent = codeEditor.value.length + ' chars';
-}
-
-codeEditor.addEventListener('keyup', updateCursor);
-codeEditor.addEventListener('click', updateCursor);
-
-function updateCursor() {
-  const val = codeEditor.value.substring(0, codeEditor.selectionStart);
-  const lines = val.split('\n');
-  cursorPos.textContent = `Ln ${lines.length}, Col ${lines[lines.length - 1].length + 1}`;
-}
-
-// ─────────────────────────────────────────────
-//  TAB KEY
-// ─────────────────────────────────────────────
-codeEditor.addEventListener('keydown', e => {
-  if (e.key === 'Tab') {
-    e.preventDefault();
-    const s = codeEditor.selectionStart, end = codeEditor.selectionEnd;
-    codeEditor.value = codeEditor.value.substring(0, s) + '  ' + codeEditor.value.substring(end);
-    codeEditor.selectionStart = codeEditor.selectionEnd = s + 2;
-    updateLineNumbers();
-  }
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-    e.preventDefault();
-    runCode();
-  }
-});
-
-// ─────────────────────────────────────────────
-//  OUTPUT TABS
-// ─────────────────────────────────────────────
-outTabs.forEach(t => {
-  t.addEventListener('click', () => {
-    outTabs.forEach(x => x.classList.remove('active'));
-    t.classList.add('active');
-    currentOutputTab = t.dataset.tab;
-    if (currentOutputTab === 'preview') {
-      previewFrame.style.display = 'block';
-      consoleOut.style.display = 'none';
-    } else {
-      previewFrame.style.display = 'none';
-      consoleOut.style.display = 'block';
-    }
-  });
-});
-
-// ─────────────────────────────────────────────
-//  CONSOLE LOGGER
-// ─────────────────────────────────────────────
-const ICONS = { log: '›', error: '✕', warn: '⚠', info: 'ℹ', success: '✓' };
-
-function logToConsole(text, type = 'log') {
-  if (consoleEmpty) consoleEmpty.style.display = 'none';
-  const line = document.createElement('div');
-  line.className = `log-line log-${type}`;
-  line.innerHTML = `<span class="log-icon">${ICONS[type] || '›'}</span><span class="log-text">${escapeHtml(String(text))}</span>`;
-  consoleOut.appendChild(line);
-  consoleOut.scrollTop = consoleOut.scrollHeight;
-}
-
-function escapeHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function clearConsole() {
-  consoleOut.innerHTML = '';
-  consoleOut.appendChild(consoleEmpty);
-  consoleEmpty.style.display = 'flex';
-}
-
-// ─────────────────────────────────────────────
-//  RUN CODE
-// ─────────────────────────────────────────────
-btnRun.addEventListener('click', runCode);
-btnClear.addEventListener('click', () => {
-  codeEditor.value = '';
-  updateLineNumbers();
-  updateStats();
-  clearConsole();
-  previewFrame.srcdoc = '';
-  showToast('Editor cleared');
-});
-
-function setRunning(on) {
-  if (on) {
-    btnRun.innerHTML = '<div class="spinner"></div> Running…';
-    btnRun.disabled = true;
-    outputBadge.textContent = 'RUNNING';
-    outputBadge.style.background = '#ffd166';
-  } else {
-    btnRun.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run';
-    btnRun.disabled = false;
-  }
-}
-
-function setBadge(status) {
-  const map = { ok: ['DONE', '#00e5a0'], error: ['ERROR', '#ff6b6b'], ready: ['READY', '#00e5a0'] };
-  const [label, color] = map[status] || map.ready;
-  outputBadge.textContent = label;
-  outputBadge.style.background = color;
-}
-
-async function runCode() {
-  saveCurrentTab();
-  const t = tabs.find(t => t.id === activeTab);
-  if (!t) return;
-
-  clearConsole();
-  setRunning(true);
-
-  // Switch to console for non-HTML
-  if (t.lang !== 'html') {
-    outTabs.forEach(x => x.classList.remove('active'));
-    document.querySelector('[data-tab="console"]').classList.add('active');
-    previewFrame.style.display = 'none';
-    consoleOut.style.display = 'block';
-    currentOutputTab = 'console';
-  } else {
-    outTabs.forEach(x => x.classList.remove('active'));
-    document.querySelector('[data-tab="preview"]').classList.add('active');
-    previewFrame.style.display = 'block';
-    consoleOut.style.display = 'none';
-    currentOutputTab = 'preview';
-  }
-
-  try {
-    if (t.lang === 'html') await runHTML(t.code);
-    else if (t.lang === 'js')  await runJS(t.code);
-    else if (t.lang === 'ts')  await runTS(t.code);
-    else if (t.lang === 'py')  await runPython(t.code);
-    setBadge('ok');
-  } catch (err) {
-    logToConsole(err.message || String(err), 'error');
-    setBadge('error');
-  }
-
-  setRunning(false);
-}
-
-// HTML
-function runHTML(code) {
-  return new Promise(resolve => {
-    previewFrame.srcdoc = code;
-    previewFrame.onload = resolve;
-    setTimeout(resolve, 3000);
-  });
-}
-
-// JavaScript — capture console methods via eval in iframe
-function runJS(code) {
-  return new Promise((resolve, reject) => {
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.sandbox = 'allow-scripts';
-    document.body.appendChild(iframe);
-
-    const captured = [];
-
-    window._csLog = (args, type) => {
-      const text = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ');
-      logToConsole(text, type);
-    };
-
-    const blob = new Blob([`
-      const _send = (type, args) => window.parent._csLog(args, type);
-      const console = {
-        log:   (...a) => _send('log', a),
-        error: (...a) => _send('error', a),
-        warn:  (...a) => _send('warn', a),
-        info:  (...a) => _send('info', a),
-      };
-      window.onerror = (msg, src, line) => { _send('error', [msg + ' (line ' + line + ')']); };
-      try {
-        ${code}
-      } catch(e) { _send('error', [e.message]); }
-      window.parent.postMessage('__cs_done__', '*');
-    `], { type: 'text/javascript' });
-
-    const url = URL.createObjectURL(blob);
-    const script = iframe.contentDocument.createElement('script');
-    script.src = url;
-    iframe.contentDocument.body.appendChild(script);
-
-    const handler = e => {
-      if (e.data === '__cs_done__') {
-        window.removeEventListener('message', handler);
-        URL.revokeObjectURL(url);
-        document.body.removeChild(iframe);
-        resolve();
-      }
-    };
-    window.addEventListener('message', handler);
-    setTimeout(() => { window.removeEventListener('message', handler); resolve(); }, 8000);
-  });
-}
-
-// TypeScript — strip types via simple regex then run as JS
-async function runTS(code) {
-  // Load Babel standalone for TS transpilation
-  if (!window.Babel) {
-    logToConsole('Loading TypeScript transpiler…', 'info');
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js');
-  }
-  let transpiled;
-  try {
-    transpiled = Babel.transform(code, { presets: ['typescript'], filename: 'code.ts' }).code;
-  } catch (e) {
-    throw new Error('TypeScript error: ' + e.message);
-  }
-  return runJS(transpiled);
-}
-
-// Python via Pyodide
-async function runPython(code) {
-  if (!pyodideReady) {
-    if (!pyodideLoading) {
-      pyodideLoading = true;
-      logToConsole('Loading Pyodide (first run only — ~10 MB)…', 'info');
-      await loadScript('https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js');
-      pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/' });
-      pyodideReady = true;
-      logToConsole('Pyodide ready ✓', 'success');
-    } else {
-      throw new Error('Pyodide is still loading, please try again in a moment.');
-    }
-  }
-
-  const logs = [];
-  pyodide.setStdout({ batched: s => logToConsole(s, 'log') });
-  pyodide.setStderr({ batched: s => logToConsole(s, 'error') });
-
-  try {
-    await pyodide.runPythonAsync(code);
-  } catch (e) {
-    throw new Error(e.message);
-  }
-}
-
-function loadScript(src) {
-  return new Promise((res, rej) => {
-    const s = document.createElement('script');
-    s.src = src;
-    s.onload = res;
-    s.onerror = () => rej(new Error('Failed to load: ' + src));
-    document.head.appendChild(s);
-  });
-}
-
-// ─────────────────────────────────────────────
-//  RESIZE HANDLE
-// ─────────────────────────────────────────────
-const handle = document.getElementById('resize-handle');
-const editorPane = document.getElementById('editor-pane');
-const outputPane = document.getElementById('output-pane');
-let dragging = false, startX, startEdW, startOutW;
-
-handle.addEventListener('mousedown', e => {
-  dragging = true;
-  startX = e.clientX;
-  startEdW = editorPane.offsetWidth;
-  startOutW = outputPane.offsetWidth;
-  handle.classList.add('dragging');
-  document.body.style.cursor = 'col-resize';
-  document.body.style.userSelect = 'none';
-});
-
-document.addEventListener('mousemove', e => {
-  if (!dragging) return;
-  const dx = e.clientX - startX;
-  const total = startEdW + startOutW;
-  const newEd = Math.max(220, Math.min(total - 220, startEdW + dx));
-  editorPane.style.flex = `0 0 ${newEd}px`;
-  outputPane.style.flex = `0 0 ${total - newEd}px`;
-});
-
-document.addEventListener('mouseup', () => {
-  if (!dragging) return;
-  dragging = false;
-  handle.classList.remove('dragging');
-  document.body.style.cursor = '';
-  document.body.style.userSelect = '';
-});
-
-// ─────────────────────────────────────────────
-//  TOAST
-// ─────────────────────────────────────────────
-let toastTimer;
-function showToast(msg) {
-  toast.textContent = msg;
-  toast.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
-}
-
-// ─────────────────────────────────────────────
-//  MOBILE TOGGLE
-// ─────────────────────────────────────────────
-let mobileShowOutput = false;
-document.getElementById('mob-toggle').addEventListener('click', () => {
-  mobileShowOutput = !mobileShowOutput;
-  editorPane.classList.toggle('mobile-hide', mobileShowOutput);
-  outputPane.classList.toggle('mobile-show', mobileShowOutput);
-  document.getElementById('mob-toggle').textContent = mobileShowOutput ? 'Back to Editor' : 'Switch to Output';
-});
-
-// ─────────────────────────────────────────────
-//  INIT
-// ─────────────────────────────────────────────
-renderTabs();
-loadTab(activeTab);
-updateLineNumbers();
-updateStats();
+window.copyRef=()=>{const t=document.getElementById('reflink').textContent;navigator.clipboard.writeText(t).then(()=>alert('✅ Referral link copied!'));};
+window.openSB=()=>{document.getElementById('sb').classList.add('open');document.getElementById('ov').classList.add('show');};
+window.closeSB=()=>{document.getElementById('sb').classList.remove('open');document.getElementById('ov').classList.remove('show');};
+window.toggleSub=function(id,el){const c=document.getElementById(id);c.classList.toggle('open');el.querySelector('.arr').textContent=c.classList.contains('open')?'▴':'▾';};
+window.doLogout=async()=>{await signOut(auth);window.location.replace('/login.html');};
 </script>
 </body>
 </html>
+function renderHome() {
+  const ref = `https://netlinkagencies.linkpc.net/register.html?ref=${UD.referralCode}`;
+  document.getElementById('content').innerHTML = `
+    <!-- GREETING -->
+    <div class="greeting-bar">
+      <div class="greeting-top">
+        <div>
+          <div class="greeting-text">${getGreeting()} Use
+            <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Dashboard — NETLINK AGENCIES</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root{--sw:260px;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Nunito',sans-serif;background:#f0f2f5;color:#222;min-height:100vh;}
+.layout{display:flex;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sw);background:#1a0a2e;border-right:1px solid #2d1a4e;position:fixed;top:0;left:0;bottom:0;z-index:100;transform:translateX(-100%);transition:.3s;display:flex;flex-direction:column;}
+.sidebar.open{transform:translateX(0);}
+.sb-head{padding:16px;border-bottom:1px solid #2d1a4e;background:linear-gradient(135deg,#E91E8C,#FF4DB8);}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:38px;height:38px;background:rgba(255,255,255,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.logo-text{font-weight:900;font-size:15px;color:#fff;line-height:1.1;}
+.logo-sub{font-size:8px;color:rgba(255,255,255,.8);letter-spacing:2px;}
+.sb-nav{flex:1;overflow-y:auto;padding:6px 0;}
+.sb-nav::-webkit-scrollbar{width:3px;}
+.sb-nav::-webkit-scrollbar-thumb{background:#2d1a4e;}
+.ni{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;font-weight:600;color:#c9a8e0;border-left:3px solid transparent;text-decoration:none;transition:.15s;cursor:pointer;}
+.ni:hover,.ni.active{background:rgba(233,30,140,.15);color:#fff;border-left-color:#E91E8C;}
+.ni-icon{font-size:15px;width:20px;text-align:center;}
+.ns{padding:12px 16px 4px;font-size:9px;font-weight:800;color:#FF80CE;opacity:.8;letter-spacing:2px;text-transform:uppercase;}
+.arr{margin-left:auto;font-size:10px;}
+.sub-nav{display:none;background:rgba(0,0,0,.3);}
+.sub-nav.open{display:block;}
+.sub-ni{padding-left:44px!important;font-size:12px;}
+
+/* ── TOPBAR ── */
+.main{flex:1;}
+.topbar{background:linear-gradient(135deg,#E91E8C,#FF4DB8);padding:13px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50;box-shadow:0 2px 20px rgba(233,30,140,.4);}
+.menu-btn{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;}
+.tb-title{font-size:15px;font-weight:800;color:#fff;flex:1;}
+.notif-btn{background:rgba(255,255,255,.2);border:none;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;position:relative;}
+.notif-badge{position:absolute;top:-2px;right:-2px;background:#FFD700;color:#000;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;}
+.avatar{width:34px;height:34px;background:rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;border:2px solid rgba(255,255,255,.5);}
+
+/* ── CONTENT ── */
+.content{padding:16px 14px;max-width:500px;margin:0 auto;}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99;display:none;}
+.overlay.show{display:block;}
+
+/* ── GREETING ── */
+.greeting-box{background:#fff;border-radius:16px;padding:16px 18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.greeting-text{font-size:16px;font-weight:800;color:#222;margin-bottom:4px;}
+.greeting-sub{font-size:12px;color:#888;}
+.verified-badge{display:inline-flex;align-items:center;gap:3px;background:#E3F2FD;color:#1565C0;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:800;margin-left:4px;}
+
+/* ── TOP 2 CARDS ── */
+.top-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.top-card{border-radius:16px;padding:16px;position:relative;overflow:hidden;min-height:90px;}
+.top-card.expenses{background:linear-gradient(135deg,#FF6B35,#FF8C42);}
+.top-card.earnings{background:linear-gradient(135deg,#FF9800,#FFB74D);}
+.top-card-label{font-size:10px;font-weight:800;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.top-card-amount{font-size:22px;font-weight:900;color:#fff;}
+.top-card-icon{position:absolute;right:12px;bottom:12px;font-size:28px;opacity:.35;}
+.top-card-trend{font-size:10px;color:rgba(255,255,255,.8);margin-top:4px;}
+
+/* ── STAT CARDS ── */
+.stat-card{border-radius:16px;padding:18px 20px;margin-bottom:12px;position:relative;overflow:hidden;display:flex;justify-content:space-between;align-items:center;min-height:90px;}
+.stat-card.blue{background:linear-gradient(135deg,#1565C0,#1E88E5);}
+.stat-card.red{background:linear-gradient(135deg,#C62828,#E53935);}
+.stat-card.purple{background:linear-gradient(135deg,#6A1B9A,#8E24AA);}
+.stat-card.green{background:linear-gradient(135deg,#1B5E20,#388E3C);}
+.stat-card.teal{background:linear-gradient(135deg,#00695C,#00897B);}
+.stat-info{}
+.stat-label{font-size:10px;font-weight:800;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.stat-amount{font-size:26px;font-weight:900;color:#fff;line-height:1;}
+.stat-pill{display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,.2);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;color:#fff;margin-top:6px;}
+.stat-icon{font-size:38px;opacity:.3;margin-left:10px;}
+
+/* ── REFERRAL ── */
+.ref-card{background:#fff;border-radius:16px;padding:18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.ref-title{font-size:13px;font-weight:800;color:#E91E8C;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.ref-link-box{background:#f8f0ff;border:1.5px solid #E91E8C;border-radius:10px;padding:10px 13px;font-size:11px;color:#6A1B9A;word-break:break-all;font-family:monospace;margin-bottom:12px;}
+.ref-btns{display:flex;gap:8px;flex-wrap:wrap;}
+.rb{flex:1;min-width:60px;padding:9px 6px;border:none;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;color:#fff;}
+.rb.cp{background:#E91E8C;}.rb.wa{background:#25D366;}.rb.fb{background:#1877F2;}.rb.tg{background:#2CA5E0;}
+.levels-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;}
+.lc{border-radius:10px;padding:12px;text-align:center;}
+.lc.l1{background:linear-gradient(135deg,#E91E8C,#FF4DB8);}
+.lc.l2{background:linear-gradient(135deg,#1565C0,#1E88E5);}
+.lc.l3{background:linear-gradient(135deg,#6A1B9A,#8E24AA);}
+.ln{font-size:10px;color:rgba(255,255,255,.8);font-weight:700;margin-bottom:4px;}
+.la{font-size:16px;font-weight:900;color:#fff;}
+</style>
+</head>
+<body>
+<div class="overlay" id="ov" onclick="closeSB()"></div>
+<div class="layout">
+  <nav class="sidebar" id="sb">
+    <div class="sb-head"><div class="logo"><div class="logo-icon">🔗</div><div><div class="logo-text">NETLINK</div><div class="logo-sub">AGENCIES</div></div></div></div>
+    <div class="sb-nav">
+      <a class="ni active" href="/dashboard.html"><span class="ni-icon">🏠</span>Home</a>
+      <a class="ni" href="/dashboard/tournaments.html"><span class="ni-icon">🏆</span>E-Tournaments</a>
+      <a class="ni" href="/dashboard/karibu.html"><span class="ni-icon">🎁</span>Karibu Bonus</a>
+      <a class="ni" href="/dashboard/payclients.html"><span class="ni-icon">💸</span>Pay for Clients</a>
+      <a class="ni" href="/dashboard/deposit.html"><span class="ni-icon">💰</span>Deposit</a>
+      <a class="ni" href="/dashboard/mentorship.html"><span class="ni-icon">🎓</span>Mentorship</a>
+      <a class="ni" href="/dashboard/companyadvert.html"><span class="ni-icon">📢</span>Company Advert</a>
+      <a class="ni" href="/dashboard/betting.html"><span class="ni-icon">⚽</span>Betting Prediction</a>
+      <a class="ni" href="/dashboard/cashout.html"><span class="ni-icon">💳</span>Cashout</a>
+      <a class="ni" href="/dashboard/article.html"><span class="ni-icon">📰</span>Article</a>
+      <a class="ni" href="/dashboard/viewads.html"><span class="ni-icon">👁️</span>View Ads</a>
+      <div class="ns">Videos</div>
+      <a class="ni" href="/dashboard/tiktok.html"><span class="ni-icon">🎵</span>TikTok Videos</a>
+      <a class="ni" href="/dashboard/instagram.html"><span class="ni-icon">📸</span>Instagram Videos</a>
+      <a class="ni" href="/dashboard/youtube.html"><span class="ni-icon">▶️</span>YouTube Videos</a>
+      <div class="ni" onclick="toggleSub('sw',this)"><span class="ni-icon">📤</span>Withdraw Tasks<span class="arr">▾</span></div>
+      <div class="sub-nav" id="sw">
+        <a class="ni sub-ni" href="/dashboard/withdraw-videos.html">Videos</a>
+        <a class="ni sub-ni" href="/dashboard/withdraw-surveys.html">Surveys</a>
+        <a class="ni sub-ni" href="/dashboard/withdraw-quiz.html">Trivia Quiz</a>
+        <a class="ni sub-ni" href="/dashboard/withdraw-numgame.html">Number Game</a>
+      </div>
+      <div class="ni" onclick="toggleSub('sd',this)"><span class="ni-icon">👥</span>Downlines<span class="arr">▾</span></div>
+      <div class="sub-nav" id="sd">
+        <a class="ni sub-ni" href="/dashboard/downlines-1.html">Level 1</a>
+        <a class="ni sub-ni" href="/dashboard/downlines-2.html">Level 2</a>
+        <a class="ni sub-ni" href="/dashboard/downlines-3.html">Level 3</a>
+      </div>
+      <div class="ns">More</div>
+      <a class="ni" href="/dashboard/wadvert.html"><span class="ni-icon">📲</span>WhatsApp Adverts</a>
+      <a class="ni" href="/dashboard/forex.html"><span class="ni-icon">📈</span>Forex Trading</a>
+      <a class="ni" href="/dashboard/trivia.html"><span class="ni-icon">🧠</span>Trivia Quiz</a>
+      <a class="ni" href="/dashboard/survey.html"><span class="ni-icon">📋</span>Daily Survey</a>
+      <a class="ni" href="/dashboard/mathquiz.html"><span class="ni-icon">🔢</span>Math Quiz</a>
+      <a class="ni" href="/dashboard/numgame.html"><span class="ni-icon">🎲</span>Number Game</a>
+      <a class="ni" href="/dashboard/community.html"><span class="ni-icon">💬</span>Community</a>
+      <a class="ni" href="/dashboard/help.html"><span class="ni-icon">🆘</span>Get Help</a>
+      <a class="ni" href="/dashboard/timetable.html"><span class="ni-icon">🗓️</span>Time Table</a>
+      <a class="ni" href="/dashboard/profile.html"><span class="ni-icon">👤</span>Profile</a>
+      <a class="ni" style="color:#FF5252;" onclick="doLogout()"><span class="ni-icon">🚪</span>Log Out</a>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-btn" onclick="openSB()">☰</button>
+      <div class="tb-title">NETLINK AGENCIES</div>
+      <button class="notif-btn"><span>🔔</span><span class="notif-badge" id="notif-count">0</span></button>
+      <div class="avatar" id="av">U</div>
+    </div>
+
+    <div class="content">
+      <!-- GREETING -->
+      <div class="greeting-box">
+        <div class="greeting-text" id="greeting-text">Good morning ☀️, User!
+          <span class="verified-badge">✔ Verified</span>
+        </div>
+        <div class="greeting-sub">Welcome to NETLINK AGENCIES</div>
+      </div>
+
+      <!-- TOP 2 CARDS -->
+      <div class="top-grid">
+        <div class="top-card expenses">
+          <div class="top-card-label">Expenses</div>
+          <div class="top-card-amount">KES 150</div>
+          <div class="top-card-trend">Activation Fee</div>
+          <div class="top-card-icon">📉</div>
+        </div>
+        <div class="top-card earnings">
+          <div class="top-card-label">Total Earnings</div>
+          <div class="top-card-amount" id="total-earn">KES 0</div>
+          <div class="top-card-trend">↑ All Tasks</div>
+          <div class="top-card-icon">📈</div>
+        </div>
+      </div>
+
+      <!-- ACCOUNT BALANCE -->
+      <div class="stat-card blue">
+        <div class="stat-info">
+          <div class="stat-label">Account Balance</div>
+          <div class="stat-amount" id="acc-balance">KES 0</div>
+          <div class="stat-pill">70%</div>
+        </div>
+        <div class="stat-icon">🛒</div>
+      </div>
+
+      <!-- WITHDRAWN -->
+      <div class="stat-card red">
+        <div class="stat-info">
+          <div class="stat-label">Withdrawn Amount</div>
+          <div class="stat-amount" id="withdrawn">KES 0</div>
+          <div class="stat-pill">↑ Total Withdrawn</div>
+        </div>
+        <div class="stat-icon">↑</div>
+      </div>
+
+      <!-- PENDING -->
+      <div class="stat-card purple">
+        <div class="stat-info">
+          <div class="stat-label">Pending Amount</div>
+          <div class="stat-amount" id="pending">KES 0</div>
+          <div class="stat-pill">⏳ Awaiting Approval</div>
+        </div>
+        <div class="stat-icon">🕐</div>
+      </div>
+
+      <!-- KARIBU BONUS -->
+      <div class="stat-card green">
+        <div class="stat-info">
+          <div class="stat-label">Karibu Bonus</div>
+          <div class="stat-amount" id="karibu">KES 0</div>
+          <div class="stat-pill">89%</div>
+        </div>
+        <div class="stat-icon">💵</div>
+      </div>
+
+      <!-- WEEKLY BONUS -->
+      <div class="stat-card teal">
+        <div class="stat-info">
+          <div class="stat-label">Weekly Bonus</div>
+          <div class="stat-amount" id="weekly">KES 0</div>
+          <div class="stat-pill">20%</div>
+        </div>
+        <div class="stat-icon">📊</div>
+      </div>
+
+      <!-- REFERRAL LINK -->
+      <div class="ref-card">
+        <div class="ref-title">🔗 Your Referral Link</div>
+        <div class="ref-link-box" id="reflink">https://netlinkagencies.linkpc.net/register.html?ref=username</div>
+        <div class="ref-btns">
+          <button class="rb cp" onclick="copyRef()">📋 Copy</button>
+          <button class="rb wa" id="wa-share">WhatsApp</button>
+          <button class="rb fb" id="fb-share">Facebook</button>
+          <button class="rb tg" id="tg-share">Telegram</button>
+        </div>
+        <div class="levels-grid">
+          <div class="lc l1"><div class="ln">Level 1</div><div class="la">KSH 80</div></div>
+          <div class="lc l2"><div class="ln">Level 2</div><div class="la">KSH 20</div></div>
+          <div class="lc l3"><div class="ln">Level 3</div><div class="la">KSH 10</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const app=initializeApp({apiKey:"AIzaSyCCFExYKkXxauIXVv2HzNHbNnizL6MF_p4",authDomain:"netlink-agencies-6399e.firebaseapp.com",projectId:"netlink-agencies-6399e",storageBucket:"netlink-agencies-6399e.firebasestorage.app",messagingSenderId:"546397751362",appId:"1:546397751362:web:c74e057b2b0ceb6c0745db"});
+const auth=getAuth(app),db=getFirestore(app);
+
+onAuthStateChanged(auth,async u=>{
+  if(!u){window.location.replace('/login.html');return;}
+  const snap=await getDoc(doc(db,'users',u.uid));
+  if(!snap.exists()||!snap.data().activated){window.location.replace('/activate.html');return;}
+  const UD=snap.data();
+
+  // Greeting
+  const h=new Date().getHours();
+  const g=h<12?'Good morning ☀️':h<17?'Good afternoon 🌤️':'Good evening 🌙';
+  document.getElementById('greeting-text').innerHTML=g+', <strong>'+UD.username+'</strong>! <span class="verified-badge">✔ Verified</span>';
+  document.getElementById('av').textContent=UD.username.charAt(0).toUpperCase();
+
+  // Stats
+  document.getElementById('total-earn').textContent='KES '+(UD.totalEarnings||0);
+  document.getElementById('acc-balance').textContent='KES '+(UD.balance||0);
+  document.getElementById('withdrawn').textContent='KES '+(UD.withdrawn||0);
+  document.getElementById('pending').textContent='KES '+(UD.pending||0);
+  document.getElementById('karibu').textContent='KES '+(UD.karibu||0);
+  document.getElementById('weekly').textContent='KES '+(UD.weeklyBonus||0);
+
+  // Referral link
+  const ref='https://netlinkagencies.linkpc.net/register.html?ref='+UD.referralCode;
+  document.getElementById('reflink').textContent=ref;
+  document.getElementById('wa-share').onclick=()=>window.open('https://wa.me/?text=Join NETLINK AGENCIES and earn daily! '+encodeURIComponent(ref),'_blank');
+  document.getElementById('fb-share').onclick=()=>window.open('https://facebook.com/sharer/sharer.php?u='+encodeURIComponent(ref),'_blank');
+  document.getElementById('tg-share').onclick=()=>window.open('https://t.me/share/url?url='+encodeURIComponent(ref),'_blank');
+});
+
+window.copyRef=()=>{const t=document.getElementById('reflink').textContent;navigator.clipboard.writeText(t).then(()=>alert('✅ Referral link copied!'));};
+window.openSB=()=>{document.getElementById('sb').classList.add('open');document.getElementById('ov').classList.add('show');};
+window.closeSB=()=>{document.getElementById('sb').classList.remove('open');document.getElementById('ov').classList.remove('show');};
+window.toggleSub=function(id,el){const c=document.getElementById(id);c.classList.toggle('open');el.querySelector('.arr').textContent=c.classList.contains('open')?'▴':'▾';};
+window.doLogout=async()=>{await signOut(auth);window.location.replace('/login.html');};
+</script>
+</body>
+                                                     </html>
